@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GigaCodeAgentSettings">
+    <option name="autoApprovedCommands">
+      <list>
+        <Execute>
+          <option name="pattern" value="cd src &amp;&amp; go build -o ../bin/server.exe . &amp;&amp; cd .. &amp;&amp; bin\server.exe" />
+        </Execute>
+        <Execute>
+          <option name="pattern" value="cd src &amp;&amp; go build -o ../bin/server.exe ." />
+        </Execute>
+      </list>
+    </option>
+  </component>
+</project>

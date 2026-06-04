@@ -50,7 +50,7 @@ func HandleDarkModePage(w http.ResponseWriter, r *http.Request) {
 
 func HandleCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Return current session user
-	user := database.GetSessionUser()
+	user, _ := database.GetSessionUserFromRequest(r)
 	
 	response := map[string]string{
 		"username": "guest",

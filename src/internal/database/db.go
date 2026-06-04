@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"place-tytyber/internal/models"
 	"time"
 
@@ -11,6 +12,9 @@ import (
 )
 
 var db *sql.DB
+
+// Session state for interactive commands
+var sessionState *models.SessionState
 
 func InitDB(host string, port int, user string, password string, dbname string) {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
@@ -142,38 +146,73 @@ func CloseDB() {
 	}
 }
 
-// GetSessionUser returns the current session user (simulated)
-var currentSessionUser *models.User
-
-// Session state for interactive commands
-var sessionState *models.SessionState
-
-func SetSessionUser(user *models.User) {
-	currentSessionUser = user
-}
-
-func GetSessionUser() *models.User {
-	// If no user in session, return guest
-	if currentSessionUser == nil {
-		if guest, err := GetUserByUsername("guest"); err == nil {
-			return guest
+// GetSessionUserFromRequest returns the current session user from the request
+// It reads from current_user cookie for persistence across requests
+func GetSessionUserFromRequest(r *http.Request) (*models.User, error) {
+	// Try to get user from cookie directly
+	if cookie, err := r.Cookie("current_user"); err == nil {
+		user, err := GetUserByUsername(cookie.Value)
+		if err == nil {
+			return user, nil
 		}
 	}
-	return currentSessionUser
+	
+	// Return guest if no user found
+	return GetUserByUsername("guest")
 }
 
-func ClearSessionUser() {
-	currentSessionUser = nil
-	sessionState = nil
-}
-
-func UpdateSessionUser(username string) error {
-	user, err := GetUserByUsername(username)
+// GetUserByUsernameByID gets user by ID
+func GetUserByUsernameByID(userID int) (*models.User, error) {
+	user := &models.User{}
+	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, created_at FROM users WHERE id = $1", userID).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password,
+		&user.IsGuest,
+		&user.CreatedAt,
+	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	currentSessionUser = user
+	return user, nil
+}
+
+// SetSessionUserFromRequest sets the current user in the session for the request
+func SetSessionUserFromRequest(w http.ResponseWriter, r *http.Request, user *models.User) error {
+	// Set cookie directly for immediate availability
+	http.SetCookie(w, &http.Cookie{
+		Name:     "current_user",
+		Value:    user.Username,
+		Path:     "/",
+		MaxAge:   3600 * 24 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   false,
+	})
 	return nil
+}
+
+// ClearSessionUserFromRequest clears the current session for the request
+func ClearSessionUserFromRequest(w http.ResponseWriter, r *http.Request) error {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "current_user",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1, // Expire immediately
+		HttpOnly: true,
+		Secure:   false,
+	})
+	return nil
+}
+
+// StartSessionCleanup starts a goroutine that clears session every hour
+func StartSessionCleanup() {
+	go func() {
+		for {
+			time.Sleep(1 * time.Hour)
+			sessionState = nil
+		}
+	}()
 }
 
 func GetSessionState() *models.SessionState {
@@ -185,14 +224,4 @@ func GetSessionState() *models.SessionState {
 
 func SetSessionState(state *models.SessionState) {
 	sessionState = state
-}
-
-// StartSessionCleanup starts a goroutine that clears session every hour
-func StartSessionCleanup() {
-	go func() {
-		for {
-			time.Sleep(1 * time.Hour)
-			ClearSessionUser()
-		}
-	}()
 }
