@@ -31,21 +31,9 @@ func HandleTerminal(w http.ResponseWriter, r *http.Request) {
 		darkModeEnabled = true
 	}
 	
-	// Check if we have a current user in cookie
-	currentUser := ""
-	if cookie, err := r.Cookie("current_user"); err == nil {
-		currentUser = cookie.Value
-	}
-	
-	// Set current session user from cookie (if not in interactive mode)
-	if currentUser != "" {
-		if user, err := database.GetUserByUsername(currentUser); err == nil {
-			database.SetSessionUser(user)
-		}
-	}
-
 	// Check if we have an active session state (interactive command)
-	if state := database.GetSessionState(); state.Active {
+	state := database.GetSessionState()
+	if state.Active {
 		response := processInteractiveCommand(req.Command, darkModeEnabled)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
@@ -64,13 +52,16 @@ func HandleTerminal(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	
-	// Update current session user cookie
+	// Update session user using gorilla sessions
 	if response.CurrentSessionUser != "" {
-		http.SetCookie(w, &http.Cookie{
-			Name:  "current_user",
-			Value: response.CurrentSessionUser,
-			Path:  "/",
-		})
+		if user, err := database.GetUserByUsername(response.CurrentSessionUser); err == nil {
+			database.SetSessionUserFromRequest(w, r, user)
+		}
+	}
+
+	// Clear session if logout
+	if response.Type == "success" && response.CurrentSessionUser == "guest" {
+		database.ClearSessionUserFromRequest(w, r)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -105,10 +96,12 @@ func processCommand(cmd string, darkModeEnabled bool) models.TerminalResponse {
 		}
 
 	case "dark-mode":
+		state := database.GetSessionState()
 		return models.TerminalResponse{
 			Output:       "Переход к dark mode...",
 			Type:         "success",
 			UpdateCookie: "true",
+			CurrentSessionUser: state.Username,
 			Additional: []string{
 				"Следующая команда отправит вас на /dark-mode",
 				"Ожидание подтверждения...",
@@ -246,9 +239,6 @@ func handleRegisterUsername(username string) models.TerminalResponse {
 func handleRegisterRepeat(repeatPassword, username, password string) models.TerminalResponse {
 	state := database.GetSessionState()
 
-	// Debug: log the passwords for comparison
-	// fmt.Printf("DEBUG: password='%s', repeatPassword='%s', equal=%v\n", password, repeatPassword, password == repeatPassword)
-
 	if password != repeatPassword {
 		state.Active = false
 		state.StateType = ""
@@ -320,11 +310,9 @@ func handleLoginPassword(password, username string) models.TerminalResponse {
 	state := database.GetSessionState()
 
 	// Check credentials
-	// First check if it's the guest user
 	if username == "guest" {
 		state.Active = false
 		state.StateType = ""
-		database.SetSessionUser(nil)
 		
 		return models.TerminalResponse{
 			Output:             "Вы вошли как гость",
@@ -363,17 +351,6 @@ func handleLoginPassword(password, username string) models.TerminalResponse {
 		}
 	}
 
-	// Set session user
-	err = database.UpdateSessionUser(username)
-	if err != nil {
-		state.Active = false
-		state.StateType = ""
-		return models.TerminalResponse{
-			Output: fmt.Sprintf("Ошибка при установке сессии: %v", err),
-			Type:   "error",
-		}
-	}
-
 	state.Active = false
 	state.StateType = ""
 	return models.TerminalResponse{
@@ -393,8 +370,6 @@ func processLogout() models.TerminalResponse {
 	state.StateType = ""
 	state.Username = ""
 	state.Password = ""
-
-	database.ClearSessionUser()
 	
 	return models.TerminalResponse{
 		Output:             "Вы вышли из системы",
