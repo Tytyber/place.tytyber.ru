@@ -1,0 +1,37 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"place-tytyber/internal/database"
+	"place-tytyber/internal/handlers"
+)
+
+func main() {
+	// Initialize database
+	// You can change these values to connect to your PostgreSQL
+	database.InitDB("192.168.1.12", 5432, "postgres", "", "tytyber_club")
+
+	// Start session cleanup
+	database.StartSessionCleanup()
+
+	// Terminal API endpoint
+	http.HandleFunc("/api/terminal", handlers.HandleTerminal)
+	
+	// Current user API endpoint
+	http.HandleFunc("/api/current-user", handlers.HandleCurrentUser)
+
+	// Dark mode page handler (only accessible via /dark-mode)
+	http.HandleFunc("/dark-mode", handlers.HandleDarkModePage)
+
+	// Main page handler
+	http.HandleFunc("/", handlers.HandleMainPage)
+
+	// Serve static files from templates directory
+	http.HandleFunc("/assets/", handlers.HandleStaticFiles)
+
+	fmt.Println("Server starting on :8080")
+	fmt.Println("Database initialized successfully")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
