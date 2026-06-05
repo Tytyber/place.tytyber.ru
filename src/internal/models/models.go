@@ -8,6 +8,7 @@ type User struct {
 	Password  string    `json:"-" db:"password_hash"`
 	Email     string    `json:"email" db:"email"`
 	IsGuest   bool      `json:"is_guest" db:"is_guest"`
+	Rule      int       `json:"rule" db:"rule"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
@@ -40,4 +41,5 @@ type SessionState struct {
 	StateType  string // "register_username", "register_password", "register_repeat", "login_username", "login_password"
 	Username   string
 	Password   string
+	User       *User // stores full user object with rule info
 }

@@ -17,23 +17,34 @@ var db *sql.DB
 var sessionState *models.SessionState
 
 func InitDB(host string, port int, user string, password string, dbname string) {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	// Формируем URL правильно, даже если пароль пустой
+	var connStr string
+	if password == "" {
+		connStr = fmt.Sprintf(
+			"postgres://%s@%s:%d/%s?sslmode=disable",
+			user, host, port, dbname,
+		)
+	} else {
+		connStr = fmt.Sprintf(
+			"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+			user, password, host, port, dbname,
+		)
+	}
+
+	log.Printf("🔍 DEBUG connStr: postgres://%s:***@%s:%d/%s", user, host, port, dbname)
 
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal("Failed to open database:", err)
 	}
 
-	// Test connection
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("Failed to ping database:", err)
 	}
 
-	log.Println("Successfully connected to database")
-
-	// Create tables and add missing columns
+	log.Printf("Successfully connected to database: %s", dbname)
 	createTables()
 }
 
@@ -41,7 +52,7 @@ func createTables() {
 	// Check if users table exists
 	var tableName string
 	err := db.QueryRow("SELECT table_name FROM information_schema.tables WHERE table_name = 'users'").Scan(&tableName)
-	
+
 	if err == sql.ErrNoRows {
 		// Table doesn't exist, create it
 		createUsersTable := `
@@ -67,13 +78,14 @@ func createTables() {
 		checkAndAddColumn("users", "password_hash", "TEXT DEFAULT ''")
 		checkAndAddColumn("users", "is_guest", "BOOLEAN DEFAULT FALSE")
 		checkAndAddColumn("users", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-		
+		checkAndAddColumn("users", "rule", "INTEGER DEFAULT 1")
+
 		// Set default for existing rows with NULL password_hash
 		_, err = db.Exec("UPDATE users SET password_hash = '' WHERE password_hash IS NULL")
 		if err != nil {
 			log.Printf("Warning: Could not update NULL password_hash: %v", err)
 		}
-		
+
 		// Try to set default constraint if not already set
 		_, err = db.Exec("ALTER TABLE users ALTER COLUMN password_hash SET DEFAULT ''")
 		if err != nil {
@@ -83,8 +95,8 @@ func createTables() {
 
 	// Insert default guest user (with empty password_hash)
 	insertGuest := `
-	INSERT INTO users (username, email, password_hash, is_guest)
-	SELECT 'guest', 'guest@tytyber.ru', '', TRUE
+	INSERT INTO users (username, email, password_hash, is_guest, rule)
+	SELECT 'guest', 'guest@tytyber.ru', '', TRUE, 1
 	WHERE NOT EXISTS (
 		SELECT 1 FROM users WHERE username = 'guest'
 	);`
@@ -94,13 +106,39 @@ func createTables() {
 		log.Fatal("Failed to insert guest user:", err)
 	}
 
+	// Insert default admin user (for admin panel)
+	insertAdmin := `
+	INSERT INTO users (username, email, password_hash, is_guest, rule)
+	SELECT 'admin', 'admin@tytyber.ru', '', FALSE, 3
+	WHERE NOT EXISTS (
+		SELECT 1 FROM users WHERE username = 'admin'
+	);`
+
+	_, err = db.Exec(insertAdmin)
+	if err != nil {
+		log.Fatal("Failed to insert admin user:", err)
+	}
+
+	// Insert default moderator user
+	insertModerator := `
+	INSERT INTO users (username, email, password_hash, is_guest, rule)
+	SELECT 'moderator', 'moderator@tytyber.ru', '', FALSE, 2
+	WHERE NOT EXISTS (
+		SELECT 1 FROM users WHERE username = 'moderator'
+	);`
+
+	_, err = db.Exec(insertModerator)
+	if err != nil {
+		log.Fatal("Failed to insert moderator user:", err)
+	}
+
 	log.Println("Database tables initialized successfully")
 }
 
 func checkAndAddColumn(table, column, definition string) {
 	var colName string
 	err := db.QueryRow("SELECT column_name FROM information_schema.columns WHERE table_name = $1 AND column_name = $2", table, column).Scan(&colName)
-	
+
 	if err == sql.ErrNoRows {
 		_, err = db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s %s", table, column, definition))
 		if err != nil {
@@ -112,12 +150,13 @@ func checkAndAddColumn(table, column, definition string) {
 
 func GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{}
-	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, created_at FROM users WHERE username = $1", username).Scan(
+	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, rule, created_at FROM users WHERE username = $1", username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.Password,
 		&user.IsGuest,
+		&user.Rule,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -149,14 +188,23 @@ func CloseDB() {
 // GetSessionUserFromRequest returns the current session user from the request
 // It reads from current_user cookie for persistence across requests
 func GetSessionUserFromRequest(r *http.Request) (*models.User, error) {
+	state := GetSessionState()
+
+	// First check if user is available in session state
+	if state.User != nil {
+		return state.User, nil
+	}
+
 	// Try to get user from cookie directly
-	if cookie, err := r.Cookie("current_user"); err == nil {
-		user, err := GetUserByUsername(cookie.Value)
-		if err == nil {
-			return user, nil
+	if r != nil {
+		if cookie, err := r.Cookie("current_user"); err == nil {
+			user, err := GetUserByUsername(cookie.Value)
+			if err == nil {
+				return user, nil
+			}
 		}
 	}
-	
+
 	// Return guest if no user found
 	return GetUserByUsername("guest")
 }
@@ -164,12 +212,13 @@ func GetSessionUserFromRequest(r *http.Request) (*models.User, error) {
 // GetUserByUsernameByID gets user by ID
 func GetUserByUsernameByID(userID int) (*models.User, error) {
 	user := &models.User{}
-	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, created_at FROM users WHERE id = $1", userID).Scan(
+	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, rule, created_at FROM users WHERE id = $1", userID).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.Password,
 		&user.IsGuest,
+		&user.Rule,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -224,4 +273,42 @@ func GetSessionState() *models.SessionState {
 
 func SetSessionState(state *models.SessionState) {
 	sessionState = state
+}
+
+// GetTotalUsers returns total number of users
+func GetTotalUsers() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
+// GetNewUsersToday returns number of users registered today
+func GetNewUsersToday() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE created_at >= date_trunc('day', now())").Scan(&count)
+	return count, err
+}
+
+// GetDailyVisits returns daily visits count
+func GetDailyVisits() (int, error) {
+	var count int
+	// Placeholder - would need visits tracking table
+	count = 150
+	return count, nil
+}
+
+// GetMonthlyVisits returns monthly visits count
+func GetMonthlyVisits() (int, error) {
+	var count int
+	// Placeholder - would need visits tracking table
+	count = 4500
+	return count, nil
+}
+
+// GetActiveUsers returns active users count
+func GetActiveUsers() (int, error) {
+	var count int
+	// Placeholder - would need session tracking
+	count = 25
+	return count, nil
 }

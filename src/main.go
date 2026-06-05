@@ -25,6 +25,9 @@ func main() {
 	// Dark mode page handler (only accessible via /dark-mode)
 	http.HandleFunc("/dark-mode", handlers.HandleDarkModePage)
 
+	// Admin panel page handler (only accessible for users with rule >= 2)
+	http.HandleFunc("/admin-panel", handlers.HandleAdminPanel)
+
 	// Main page handler
 	http.HandleFunc("/", handlers.HandleMainPage)
 

@@ -161,6 +161,9 @@ func processCommand(cmd string, darkModeEnabled bool) models.TerminalResponse {
 	case "logout":
 		return processLogout()
 
+	case "admin-panel":
+		return processAdminPanel()
+
 	default:
 		return processCommandDefault(cmd)
 	}
@@ -215,6 +218,7 @@ func startRegister() models.TerminalResponse {
 	state.StateType = "register_username"
 	state.Username = ""
 	state.Password = ""
+	state.User = nil
 
 	return models.TerminalResponse{
 		Output:       "Введите имя пользователя:",
@@ -298,6 +302,7 @@ func startLogin() models.TerminalResponse {
 	state.StateType = "login_username"
 	state.Username = ""
 	state.Password = ""
+	state.User = nil
 
 	return models.TerminalResponse{
 		Output:       "Введите имя пользователя:",
@@ -313,6 +318,12 @@ func handleLoginPassword(password, username string) models.TerminalResponse {
 	if username == "guest" {
 		state.Active = false
 		state.StateType = ""
+		
+		// Get guest user object with rule info
+		guestUser, err := database.GetUserByUsername("guest")
+		if err == nil {
+			state.User = guestUser
+		}
 		
 		return models.TerminalResponse{
 			Output:             "Вы вошли как гость",
@@ -351,6 +362,23 @@ func handleLoginPassword(password, username string) models.TerminalResponse {
 		}
 	}
 
+	// Get full user object with rule info
+	user, err := database.GetUserByUsername(username)
+	if err != nil {
+		state.Active = false
+		state.StateType = ""
+		return models.TerminalResponse{
+			Output: "Ошибка при получении информации о пользователе",
+			Type:   "error",
+			Additional: []string{
+				fmt.Sprintf("Детали: %v", err),
+			},
+		}
+	}
+
+	// Save user object to session state for later use
+	state.User = user
+
 	state.Active = false
 	state.StateType = ""
 	return models.TerminalResponse{
@@ -370,6 +398,7 @@ func processLogout() models.TerminalResponse {
 	state.StateType = ""
 	state.Username = ""
 	state.Password = ""
+	state.User = nil
 	
 	return models.TerminalResponse{
 		Output:             "Вы вышли из системы",
@@ -378,6 +407,57 @@ func processLogout() models.TerminalResponse {
 		Additional: []string{
 			"Смена приглашения терминала...",
 			"Теперь вы вошли как гость",
+		},
+	}
+}
+
+func processAdminPanel() models.TerminalResponse {
+	state := database.GetSessionState()
+	
+	// Use user from session state if available
+	var user *models.User
+	if state.User != nil {
+		user = state.User
+	} else {
+		return models.TerminalResponse{
+			Output: "Ошибка: информация о пользователе недоступна. Пожалуйста, войдите в систему.",
+			Type:   "error",
+		}
+	}
+
+	// Проверяем права доступа (только модераторы и администраторы)
+	if user.Rule < 2 {
+		ruleName := "Обычный пользователь"
+		if user.Rule == 1 {
+			ruleName = "Обычный пользователь"
+		}
+		return models.TerminalResponse{
+			Output: "Доступ запрещен. Для доступа к админ-панели необходимы права модератора или администратора.",
+			Type:   "error",
+			Additional: []string{
+				"Войдите как пользователь с правами rule >= 2",
+				"Текущий пользователь:",
+				fmt.Sprintf("  Имя: %s", user.Username),
+				fmt.Sprintf("  Права: %d (%s)", user.Rule, ruleName),
+			},
+		}
+	}
+
+	// Определяем уровень прав
+	ruleName := "Модератор"
+	if user.Rule == 3 {
+		ruleName = "Администратор"
+	}
+
+	return models.TerminalResponse{
+		Output:       "Переход в админ-панель...",
+		Type:         "success",
+		CurrentSessionUser: user.Username,
+		Additional: []string{
+			"Проверка прав доступа...",
+			fmt.Sprintf("Уровень прав: %d - %s", user.Rule, ruleName),
+			"Админ-панель доступна по адресу: /admin-panel",
+			"Ожидание перенаправления...",
 		},
 	}
 }
