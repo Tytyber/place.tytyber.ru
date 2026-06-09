@@ -24,6 +24,7 @@ type TerminalResponse struct {
 	CurrentSessionUser string   `json:"current_session_user,omitempty"`
 	UpdateCookie       string   `json:"update_cookie,omitempty"`
 	WaitForInput       bool     `json:"wait_for_input,omitempty"`
+	Redirect           string   `json:"redirect,omitempty"`
 }
 
 type UserResponse struct {

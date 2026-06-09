@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - Admin Panel</title>
+    <link rel="stylesheet" href="/assets/styles/admin.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="nav">
+        <div class="logo">Admin</div>
+        <ul class="nav-links">
+            <li><a href="/admin" class="nav-link">dashboard</a></li>
+            <li><a href="/admin/users" class="nav-link active">users</a></li>
+            <li><a href="/admin/chat" class="nav-link">admin chat</a></li>
+            <li><a href="/admin/blog" class="nav-link">blog</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>users</h1>
+        </div>
+        <div class="page-controls">
+            <form class="search-form">
+                <input type="text" name="search" value="{{.SearchTerm}}" placeholder="search by username...">
+                <button type="submit" class="search-btn">🔍</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users List -->
+    <div class="users-list">
+        {{range .Users}}
+        <div class="user-card">
+            <div class="user-info">
+                <div class="user-header">
+                    <h3 class="username">{{.Username}}</h3>
+                    <span class="user-id">ID: {{.ID}}</span>
+                </div>
+                <div class="user-details">
+                    <span class="user-email">{{.Email}}</span>
+                    <span class="user-joined">joined: {{.CreatedAt.Format "02 Jan 2006"}}</span>
+                </div>
+            </div>
+            <div class="user-actions">
+                <form class="user-form" action="/admin/users/update" method="POST">
+                    <input type="hidden" name="user_id" value="{{.ID}}">
+                    <div class="form-group">
+                        <label>rule</label>
+                        <select name="rule">
+                            <option value="1" {{if eq .Rule 1}}selected{{end}}>user</option>
+                            <option value="2" {{if eq .Rule 2}}selected{{end}}>moderator</option>
+                            <option value="3" {{if eq .Rule 3}}selected{{end}}>admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>email</label>
+                        <input type="email" name="email" value="{{.Email}}">
+                    </div>
+                    <button type="submit" class="btn-update">update</button>
+                </form>
+                <form class="delete-form" action="/admin/users/delete" method="POST" onsubmit="return confirm('Delete user {{.Username}}?');">
+                    <input type="hidden" name="user_id" value="{{.ID}}">
+                    <button type="submit" class="btn-delete">delete</button>
+                </form>
+            </div>
+        </div>
+        {{else}}
+        <div class="no-users">
+            <p>no users found</p>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Pagination -->
+    {{if gt .TotalPages 1}}
+    <div class="pagination">
+        {{if gt .CurrentPage 1}}
+        <a href="/admin/users?page={{sub .CurrentPage 1}}{{if .SearchTerm}}&search={{.SearchTerm}}{{end}}" class="prev-page">← prev</a>
+        {{end}}
+        
+        <span class="page-info">page {{.CurrentPage}} of {{.TotalPages}}</span>
+        
+        {{if lt .CurrentPage .TotalPages}}
+        <a href="/admin/users?page={{add .CurrentPage 1}}{{if .SearchTerm}}&search={{.SearchTerm}}{{end}}" class="next-page">next →</a>
+        {{end}}
+    </div>
+    {{end}}
+</main>
+
+<script src="/assets/js/admin.js"></script>
+</body>
+</html>

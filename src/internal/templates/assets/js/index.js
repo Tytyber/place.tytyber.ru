@@ -169,27 +169,33 @@ class Terminal {
             } else if (data.type === 'success') {
                 this.printLine(data.output, 'success');
                 
-                // Check if we need to update current user
-                if (data.output.toLowerCase().includes('добро пожаловать') || data.output.toLowerCase().includes('успешно зарегистрирован')) {
-                    // Extract username from output if available
-                    const outputLower = data.output.toLowerCase();
-                    if (outputLower.includes('добро пожаловать')) {
-                        const match = data.output.match(/\b([a-zA-Z0-9_]+)\b/);
-                        if (match) {
-                            this.currentUser = match[0];
-                            this.updatePrompt();
-                        }
-                    } else if (outputLower.includes('успешно зарегистрирован')) {
-                        const match = data.output.match(/\b([a-zA-Z0-9_]+)\b/);
-                        if (match) {
-                            this.currentUser = match[0];
-                            this.updatePrompt();
-                        }
-                    }
-                } else if (data.output.toLowerCase().includes('вы вышли из системы') || data.output.toLowerCase().includes('вы вошли как гость')) {
-                    // Reset to guest user
-                    this.currentUser = 'guest';
+                // Update current user from response if provided
+                if (data.current_session_user) {
+                    this.currentUser = data.current_session_user;
                     this.updatePrompt();
+                } else {
+                    // Fallback to parsing output if current_session_user not provided
+                    if (data.output.toLowerCase().includes('добро пожаловать') || data.output.toLowerCase().includes('успешно зарегистрирован')) {
+                        // Extract username from output if available
+                        const outputLower = data.output.toLowerCase();
+                        if (outputLower.includes('добро пожаловать')) {
+                            const match = data.output.match(/\b([a-zA-Z0-9_]+)\b/);
+                            if (match) {
+                                this.currentUser = match[0];
+                                this.updatePrompt();
+                            }
+                        } else if (outputLower.includes('успешно зарегистрирован')) {
+                            const match = data.output.match(/\b([a-zA-Z0-9_]+)\b/);
+                            if (match) {
+                                this.currentUser = match[0];
+                                this.updatePrompt();
+                            }
+                        }
+                    } else if (data.output.toLowerCase().includes('вы вышли из системы') || data.output.toLowerCase().includes('вы вошли как гость')) {
+                        // Reset to guest user
+                        this.currentUser = 'guest';
+                        this.updatePrompt();
+                    }
                 }
                 
                 // Check if cookie update is needed
@@ -200,6 +206,13 @@ class Terminal {
                 } else if (data.update_cookie === 'false') {
                     setTimeout(() => {
                         window.location.href = '/';
+                    }, 1500);
+                }
+                
+                // Check if redirect is needed
+                if (data.redirect) {
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
                     }, 1500);
                 }
             } else if (data.type === 'table') {

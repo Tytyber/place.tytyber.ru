@@ -3,28 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel</title>
+    <title>Admin Panel - Tytyber</title>
     <link rel="stylesheet" href="/assets/styles/admin.css">
 </head>
 <body>
 <!-- Header -->
 <header class="header">
-    <div class="logo">
-        <span class="logo-text">Admin Panel</span>
-    </div>
     <nav class="nav">
-        <a href="#" class="nav-link">Dashboard</a>
-        <a href="#" class="nav-link">Admin Messages</a>
-        <a href="#" class="nav-link active">BLog</a>
-        <a href="#" class="nav-link">Cards</a>
-        <a href="#" class="nav-link">AI Finpath</a>
-        <a href="#" class="nav-link">Services</a>
-        <a href="#" class="nav-link">Help</a>
+        <div class="logo">Admin</div>
+        <ul class="nav-links">
+            <li><a href="/admin" class="nav-link active">dashboard</a></li>
+            <li><a href="/admin/users" class="nav-link">users</a></li>
+            <li><a href="/admin/chat" class="nav-link">admin chat</a></li>
+            <li><a href="/admin/blog" class="nav-link">blog</a></li>
+        </ul>
     </nav>
-    <div class="header-controls">
-        <button class="icon-btn">🔔</button>
-        <button class="icon-btn">️</button>
-    </div>
 </header>
 
 <!-- Main Content -->
@@ -32,64 +25,54 @@
     <!-- Page Header -->
     <div class="page-header">
         <div class="page-title">
-            <button class="back-btn">←</button>
-            <h1>Analytics</h1>
+            <h1>dashboard</h1>
         </div>
         <div class="page-controls">
-            <button class="icon-btn"></button>
-            <button class="icon-btn">📊</button>
-            <button class="icon-btn">📅</button>
-            <div class="date-selector">
-                <span>••••</span>
-                <span>30d</span>
-                <span>▼</span>
-            </div>
+            <button class="refresh-btn">↺</button>
+            <button class="action-btn">↓</button>
         </div>
     </div>
 
     <!-- Key Metrics Cards -->
     <div class="metrics-grid">
         <!-- Total Users Card -->
-        <div class="metric-card primary">
+        <div class="metric-card">
             <div class="metric-header">
-                <h3>Total Users</h3>
-                <span class="trend up">↑ 12%</span>
+                <h3>total users</h3>
             </div>
             <div class="metric-value">{{.TotalUsers}}</div>
             <div class="metric-subtitle">
-                <span class="trend up">+{{.NewUsersToday}}</span> today
+                общее количество пользователей
             </div>
         </div>
 
-        <!-- Daily Visits Card -->
+        <!-- Monthly User Growth Card -->
         <div class="metric-card">
             <div class="metric-header">
-                <h3>Daily Visits</h3>
-                <span class="trend up">↑ 8%</span>
+                <h3>monthly growth</h3>
             </div>
-            <div class="metric-value">{{.DailyVisits}}</div>
+            <div class="metric-value">{{.MonthlyNewUsers}}</div>
             <div class="metric-subtitle">
-                <span class="trend up">+{{.VisitsChange}}</span> vs yesterday
+                приток пользователей за месяц
             </div>
         </div>
 
-        <!-- Monthly Visits Card -->
+        <!-- Total Visits Card -->
         <div class="metric-card">
             <div class="metric-header">
-                <h3>Monthly Visits</h3>
-                <span class="trend up">↑ 15%</span>
+                <h3>total visits</h3>
             </div>
-            <div class="metric-value">{{.MonthlyVisits}}</div>
+            <div class="metric-value">{{.TotalVisits}}</div>
             <div class="metric-subtitle">
-                <span class="trend up">+{{.MonthlyGrowth}}</span> vs last month
+                количество посещений
             </div>
         </div>
 
         <!-- Active Users Card -->
         <div class="metric-card">
             <div class="metric-header">
-                <h3>Active Now</h3>
-                <span class="trend up">● Live</span>
+                <h3>active now</h3>
+                <span class="trend up">● live</span>
             </div>
             <div class="metric-value">{{.ActiveUsers}}</div>
             <div class="metric-subtitle">
@@ -98,194 +81,43 @@
         </div>
     </div>
 
-    <!-- Charts Grid -->
-    <div class="charts-grid">
-        <!-- User Distribution -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <h3>User Distribution</h3>
-                <button class="chart-action">↗</button>
-            </div>
-            <div class="chart-content">
-                <div class="donut-chart">
-                    <canvas id="userDistributionChart"></canvas>
-                    <div class="donut-center">
-                        <div class="donut-value">{{.TotalUsers}}</div>
-                        <div class="donut-label">Total</div>
-                    </div>
+    <!-- System Health -->
+    <section class="charts-section">
+        <h2 class="section-title">/01 SYSTEM STATUS</h2>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>system health</h3>
+                    <button class="icon-btn">•••</button>
                 </div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <span class="legend-color" style="background: #ccff00"></span>
-                        <span>New Users</span>
-                        <span class="legend-value">{{.NewUsers}}</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background: #ffffff"></span>
-                        <span>Returning</span>
-                        <span class="legend-value">{{.ReturningUsers}}</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background: #333333"></span>
-                        <span>Inactive</span>
-                        <span class="legend-value">{{.InactiveUsers}}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Traffic Activity -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <h3>Traffic Activity</h3>
-                <div class="chart-tabs">
-                    <button class="tab active">Daily</button>
-                    <button class="tab">Weekly</button>
-                </div>
-            </div>
-            <div class="chart-content">
-                <div class="chart-stats">
-                    <div class="stat">
-                        <span class="stat-label">Peak</span>
-                        <span class="stat-value">{{.PeakVisits}}</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-label">Average</span>
-                        <span class="stat-value">{{.AvgVisits}}</span>
-                    </div>
-                </div>
-                <canvas id="trafficChart"></canvas>
-                <div class="chart-x-axis">
-                    <span>Mon</span>
-                    <span>Tue</span>
-                    <span>Wed</span>
-                    <span>Thu</span>
-                    <span>Fri</span>
-                    <span>Sat</span>
-                    <span>Sun</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- User Growth -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <h3>User Growth</h3>
-                <span class="badge success">On track</span>
-                <span class="date-range">• 17 Mar-18 Apr</span>
-            </div>
-            <div class="chart-content">
-                <div class="progress-header">
-                    <span class="progress-label">{{.CurrentUsers}} / {{.TargetUsers}}</span>
-                    <span class="progress-percent">{{.GrowthPercent}}%</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: {{.GrowthPercent}}%"></div>
-                </div>
-                <div class="growth-list">
-                    <div class="growth-item">
-                        <span class="growth-icon"></span>
-                        <div class="growth-info">
-                            <span class="growth-name">New Signups</span>
-                            <span class="growth-count">{{.NewSignups}} registrations</span>
+                <div class="chart-content">
+                    <div class="health-stats">
+                        <div class="health-label">uptime this month</div>
+                        <div class="health-value">{{.Uptime}}%</div>
+                        <div class="health-change">
+                            <span class="trend up">↑ {{.UptimeChange}}%</span>
+                            <span>vs last month</span>
                         </div>
-                        <span class="growth-value">+{{.SignupsCount}}</span>
                     </div>
-                    <div class="growth-item">
-                        <span class="growth-icon">🔄</span>
-                        <div class="growth-info">
-                            <span class="growth-name">Returning</span>
-                            <span class="growth-count">{{.ReturningCount}} sessions</span>
-                        </div>
-                        <span class="growth-value">+{{.ReturningSessions}}</span>
-                    </div>
-                    <div class="growth-item">
-                        <span class="growth-icon">📱</span>
-                        <div class="growth-info">
-                            <span class="growth-name">Mobile Users</span>
-                            <span class="growth-count">{{.MobileUsers}} users</span>
-                        </div>
-                        <span class="growth-value">{{.MobilePercent}}%</span>
-                    </div>
-                    <div class="growth-item">
-                        <span class="growth-icon"></span>
-                        <div class="growth-info">
-                            <span class="growth-name">Global Reach</span>
-                            <span class="growth-count">{{.Countries}} countries</span>
-                        </div>
-                        <span class="growth-value">+{{.CountriesGrowth}}</span>
-                    </div>
+                    <canvas id="healthChart"></canvas>
                 </div>
             </div>
-        </div>
 
-        <!-- Daily Visits Trend -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <h3>Daily Visits Trend</h3>
-                <div class="chart-actions">
-                    <button class="icon-btn">📊</button>
-                    <button class="icon-btn">↗</button>
-                </div>
-            </div>
-            <div class="chart-content">
-                <div class="trend-stats">
-                    <div class="trend-value">${{.AvgDailyVisits}} <span class="trend-label">avg / day</span></div>
-                    <div class="trend-change">
-                        <span class="trend-arrow">↑</span>
-                        <span>from {{.PreviousAvg}} last week</span>
+            <!-- AI Insights -->
+            <div class="ai-card">
+                <div class="ai-header">
+                    <span class="ai-icon">⚡</span>
+                    <div>
+                        <h4>analytics ai</h4>
+                        <p>{{.AiInsight}}</p>
                     </div>
-                </div>
-                <canvas id="visitsTrendChart"></canvas>
-                <div class="chart-x-axis">
-                    <span>Sun</span>
-                    <span>Mon</span>
-                    <span>Tue</span>
-                    <span>Wed</span>
-                    <span>Thu</span>
-                    <span>Fri</span>
-                    <span>Sat</span>
-                </div>
-                <div class="trend-badges">
-                    <span class="badge">4 Regions</span>
-                    <span class="badge">8 Sources</span>
+                    <span class="ai-arrow">→</span>
                 </div>
             </div>
         </div>
-
-        <!-- AI Insights -->
-        <div class="ai-card">
-            <div class="ai-header">
-                <span class="ai-icon">⚡</span>
-                <div>
-                    <h4>Finpath Analytics AI</h4>
-                    <p>{{.AiInsight}}</p>
-                </div>
-                <span class="ai-arrow">→</span>
-            </div>
-        </div>
-
-        <!-- System Health -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <h3>System Health</h3>
-                <button class="icon-btn">⋮</button>
-            </div>
-            <div class="chart-content">
-                <div class="health-stats">
-                    <div class="health-label">Uptime this month</div>
-                    <div class="health-value">{{.Uptime}}%</div>
-                    <div class="health-change">
-                        <span class="trend up">↑ {{.UptimeChange}}%</span>
-                        <span>vs last month</span>
-                    </div>
-                </div>
-                <canvas id="healthChart"></canvas>
-            </div>
-        </div>
-    </div>
+    </section>
 </main>
 
-<script src="script.js"></script>
+<script src="/assets/js/admin.js"></script>
 </body>
 </html>

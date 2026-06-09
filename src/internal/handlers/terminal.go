@@ -30,7 +30,7 @@ func HandleTerminal(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie("dark_mode"); err == nil && cookie.Value == "true" {
 		darkModeEnabled = true
 	}
-	
+
 	// Check if we have an active session state (interactive command)
 	state := database.GetSessionState()
 	if state.Active {
@@ -51,7 +51,7 @@ func HandleTerminal(w http.ResponseWriter, r *http.Request) {
 			Path:  "/",
 		})
 	}
-	
+
 	// Update session user using gorilla sessions
 	if response.CurrentSessionUser != "" {
 		if user, err := database.GetUserByUsername(response.CurrentSessionUser); err == nil {
@@ -98,9 +98,9 @@ func processCommand(cmd string, darkModeEnabled bool) models.TerminalResponse {
 	case "dark-mode":
 		state := database.GetSessionState()
 		return models.TerminalResponse{
-			Output:       "Переход к dark mode...",
-			Type:         "success",
-			UpdateCookie: "true",
+			Output:             "Переход к dark mode...",
+			Type:               "success",
+			UpdateCookie:       "true",
 			CurrentSessionUser: state.Username,
 			Additional: []string{
 				"Следующая команда отправит вас на /dark-mode",
@@ -146,10 +146,13 @@ func processCommand(cmd string, darkModeEnabled bool) models.TerminalResponse {
 		}
 
 	case "clear":
+		// Clear should also reset to guest if not logged in
+		state := database.GetSessionState()
 		return models.TerminalResponse{
-			Output:       "clear",
-			Type:         "clear",
-			UpdateCookie: "",
+			Output:             "clear",
+			Type:               "clear",
+			UpdateCookie:       "",
+			CurrentSessionUser: state.Username,
 		}
 
 	case "register":
@@ -289,7 +292,7 @@ func handleRegisterRepeat(repeatPassword, username, password string) models.Term
 		Output:             fmt.Sprintf("Пользователь '%s' успешно зарегистрирован!", username),
 		Type:               "success",
 		CurrentSessionUser: username,
-		Additional:         []string{
+		Additional: []string{
 			"Теперь вы можете авторизоваться с помощью команды:",
 			"  login",
 		},
@@ -318,13 +321,13 @@ func handleLoginPassword(password, username string) models.TerminalResponse {
 	if username == "guest" {
 		state.Active = false
 		state.StateType = ""
-		
+
 		// Get guest user object with rule info
 		guestUser, err := database.GetUserByUsername("guest")
 		if err == nil {
 			state.User = guestUser
 		}
-		
+
 		return models.TerminalResponse{
 			Output:             "Вы вошли как гость",
 			Type:               "success",
@@ -399,7 +402,7 @@ func processLogout() models.TerminalResponse {
 	state.Username = ""
 	state.Password = ""
 	state.User = nil
-	
+
 	return models.TerminalResponse{
 		Output:             "Вы вышли из системы",
 		Type:               "success",
@@ -413,7 +416,7 @@ func processLogout() models.TerminalResponse {
 
 func processAdminPanel() models.TerminalResponse {
 	state := database.GetSessionState()
-	
+
 	// Use user from session state if available
 	var user *models.User
 	if state.User != nil {
@@ -450,13 +453,14 @@ func processAdminPanel() models.TerminalResponse {
 	}
 
 	return models.TerminalResponse{
-		Output:       "Переход в админ-панель...",
-		Type:         "success",
+		Output:             "Переход в админ-панель...",
+		Type:               "success",
 		CurrentSessionUser: user.Username,
+		Redirect:           "/admin",
 		Additional: []string{
 			"Проверка прав доступа...",
 			fmt.Sprintf("Уровень прав: %d - %s", user.Rule, ruleName),
-			"Админ-панель доступна по адресу: /admin-panel",
+			"Админ-панель доступна по адресу: /admin",
 			"Ожидание перенаправления...",
 		},
 	}
