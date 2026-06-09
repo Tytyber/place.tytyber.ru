@@ -8,6 +8,15 @@ type User struct {
 	Password  string    `json:"-" db:"password_hash"`
 	Email     string    `json:"email" db:"email"`
 	IsGuest   bool      `json:"is_guest" db:"is_guest"`
+	Rule      int       `json:"rule" db:"rule"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+type Message struct {
+	ID        int       `json:"id" db:"id"`
+	Username  string    `json:"username" db:"username"`
+	Rule      int       `json:"rule" db:"rule"`
+	Message   string    `json:"message" db:"message"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
@@ -23,6 +32,7 @@ type TerminalResponse struct {
 	CurrentSessionUser string   `json:"current_session_user,omitempty"`
 	UpdateCookie       string   `json:"update_cookie,omitempty"`
 	WaitForInput       bool     `json:"wait_for_input,omitempty"`
+	Redirect           string   `json:"redirect,omitempty"`
 }
 
 type UserResponse struct {
@@ -40,4 +50,5 @@ type SessionState struct {
 	StateType  string // "register_username", "register_password", "register_repeat", "login_username", "login_password"
 	Username   string
 	Password   string
+	User       *User // stores full user object with rule info
 }

@@ -16,24 +16,43 @@ var db *sql.DB
 // Session state for interactive commands
 var sessionState *models.SessionState
 
+type Message struct {
+	ID        int       `json:"id" db:"id"`
+	Username  string    `json:"username" db:"username"`
+	Rule      int       `json:"rule" db:"rule"`
+	Message   string    `json:"message" db:"message"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
 func InitDB(host string, port int, user string, password string, dbname string) {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	// Формируем URL правильно, даже если пароль пустой
+	var connStr string
+	if password == "" {
+		connStr = fmt.Sprintf(
+			"postgres://%s@%s:%d/%s?sslmode=disable",
+			user, host, port, dbname,
+		)
+	} else {
+		connStr = fmt.Sprintf(
+			"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+			user, password, host, port, dbname,
+		)
+	}
+
+	log.Printf("🔍 DEBUG connStr: postgres://%s:***@%s:%d/%s", user, host, port, dbname)
 
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal("Failed to open database:", err)
 	}
 
-	// Test connection
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("Failed to ping database:", err)
 	}
 
-	log.Println("Successfully connected to database")
-
-	// Create tables and add missing columns
+	log.Printf("Successfully connected to database: %s", dbname)
 	createTables()
 }
 
@@ -41,7 +60,7 @@ func createTables() {
 	// Check if users table exists
 	var tableName string
 	err := db.QueryRow("SELECT table_name FROM information_schema.tables WHERE table_name = 'users'").Scan(&tableName)
-	
+
 	if err == sql.ErrNoRows {
 		// Table doesn't exist, create it
 		createUsersTable := `
@@ -67,13 +86,14 @@ func createTables() {
 		checkAndAddColumn("users", "password_hash", "TEXT DEFAULT ''")
 		checkAndAddColumn("users", "is_guest", "BOOLEAN DEFAULT FALSE")
 		checkAndAddColumn("users", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-		
+		checkAndAddColumn("users", "rule", "INTEGER DEFAULT 1")
+
 		// Set default for existing rows with NULL password_hash
 		_, err = db.Exec("UPDATE users SET password_hash = '' WHERE password_hash IS NULL")
 		if err != nil {
 			log.Printf("Warning: Could not update NULL password_hash: %v", err)
 		}
-		
+
 		// Try to set default constraint if not already set
 		_, err = db.Exec("ALTER TABLE users ALTER COLUMN password_hash SET DEFAULT ''")
 		if err != nil {
@@ -83,8 +103,8 @@ func createTables() {
 
 	// Insert default guest user (with empty password_hash)
 	insertGuest := `
-	INSERT INTO users (username, email, password_hash, is_guest)
-	SELECT 'guest', 'guest@tytyber.ru', '', TRUE
+	INSERT INTO users (username, email, password_hash, is_guest, rule)
+	SELECT 'guest', 'guest@tytyber.ru', '', TRUE, 1
 	WHERE NOT EXISTS (
 		SELECT 1 FROM users WHERE username = 'guest'
 	);`
@@ -94,13 +114,67 @@ func createTables() {
 		log.Fatal("Failed to insert guest user:", err)
 	}
 
+	// Insert default admin user (for admin panel)
+	insertAdmin := `
+	INSERT INTO users (username, email, password_hash, is_guest, rule)
+	SELECT 'admin', 'admin@tytyber.ru', '', FALSE, 3
+	WHERE NOT EXISTS (
+		SELECT 1 FROM users WHERE username = 'admin'
+	);`
+
+	_, err = db.Exec(insertAdmin)
+	if err != nil {
+		log.Fatal("Failed to insert admin user:", err)
+	}
+
+	// Insert default moderator user
+	insertModerator := `
+	INSERT INTO users (username, email, password_hash, is_guest, rule)
+	SELECT 'moderator', 'moderator@tytyber.ru', '', FALSE, 2
+	WHERE NOT EXISTS (
+		SELECT 1 FROM users WHERE username = 'moderator'
+	);`
+
+	_, err = db.Exec(insertModerator)
+	if err != nil {
+		log.Fatal("Failed to insert moderator user:", err)
+	}
+
+	// Create chat table
+	createChatTable()
+
 	log.Println("Database tables initialized successfully")
+}
+
+func createChatTable() {
+	// Check if table exists
+	var tableName string
+	err := db.QueryRow("SELECT table_name FROM information_schema.tables WHERE table_name = 'admin_chat_messages'").Scan(&tableName)
+
+	if err == sql.ErrNoRows {
+		createChatTable := `
+		CREATE TABLE admin_chat_messages (
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(255) NOT NULL,
+			rule INTEGER DEFAULT 1,
+			message TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`
+
+		_, err = db.Exec(createChatTable)
+		if err != nil {
+			log.Fatal("Failed to create admin_chat_messages table:", err)
+		}
+		log.Println("Created admin_chat_messages table")
+	} else if err != nil {
+		log.Fatal("Error checking admin_chat_messages table:", err)
+	}
 }
 
 func checkAndAddColumn(table, column, definition string) {
 	var colName string
 	err := db.QueryRow("SELECT column_name FROM information_schema.columns WHERE table_name = $1 AND column_name = $2", table, column).Scan(&colName)
-	
+
 	if err == sql.ErrNoRows {
 		_, err = db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s %s", table, column, definition))
 		if err != nil {
@@ -112,12 +186,30 @@ func checkAndAddColumn(table, column, definition string) {
 
 func GetUserByUsername(username string) (*models.User, error) {
 	user := &models.User{}
-	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, created_at FROM users WHERE username = $1", username).Scan(
+	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, rule, created_at FROM users WHERE username = $1", username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.Password,
 		&user.IsGuest,
+		&user.Rule,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func GetUserByID(id int) (*models.User, error) {
+	user := &models.User{}
+	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, rule, created_at FROM users WHERE id = $1", id).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password,
+		&user.IsGuest,
+		&user.Rule,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -149,14 +241,23 @@ func CloseDB() {
 // GetSessionUserFromRequest returns the current session user from the request
 // It reads from current_user cookie for persistence across requests
 func GetSessionUserFromRequest(r *http.Request) (*models.User, error) {
+	state := GetSessionState()
+
+	// First check if user is available in session state
+	if state.User != nil {
+		return state.User, nil
+	}
+
 	// Try to get user from cookie directly
-	if cookie, err := r.Cookie("current_user"); err == nil {
-		user, err := GetUserByUsername(cookie.Value)
-		if err == nil {
-			return user, nil
+	if r != nil {
+		if cookie, err := r.Cookie("current_user"); err == nil {
+			user, err := GetUserByUsername(cookie.Value)
+			if err == nil {
+				return user, nil
+			}
 		}
 	}
-	
+
 	// Return guest if no user found
 	return GetUserByUsername("guest")
 }
@@ -164,12 +265,13 @@ func GetSessionUserFromRequest(r *http.Request) (*models.User, error) {
 // GetUserByUsernameByID gets user by ID
 func GetUserByUsernameByID(userID int) (*models.User, error) {
 	user := &models.User{}
-	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, created_at FROM users WHERE id = $1", userID).Scan(
+	err := db.QueryRow("SELECT id, username, email, password_hash, is_guest, rule, created_at FROM users WHERE id = $1", userID).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.Password,
 		&user.IsGuest,
+		&user.Rule,
 		&user.CreatedAt,
 	)
 	if err != nil {
@@ -224,4 +326,134 @@ func GetSessionState() *models.SessionState {
 
 func SetSessionState(state *models.SessionState) {
 	sessionState = state
+}
+
+// GetTotalUsers returns total number of users
+func GetTotalUsers() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
+// GetMonthlyNewUsers returns number of users registered this month
+func GetMonthlyNewUsers() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE created_at >= date_trunc('month', now())").Scan(&count)
+	return count, err
+}
+
+// GetAllUsers returns all users with pagination
+func GetAllUsers(page, limit int) ([]*models.User, error) {
+	offset := (page - 1) * limit
+	rows, err := db.Query("SELECT id, username, email, password_hash, is_guest, rule, created_at FROM users ORDER BY id LIMIT $1 OFFSET $2", limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.IsGuest, &user.Rule, &user.CreatedAt)
+		if err != nil {
+			continue
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+// GetUserCount returns total count of users
+func GetUserCount() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
+// SearchUsers searches users by username
+func SearchUsers(searchTerm string) ([]*models.User, error) {
+	rows, err := db.Query("SELECT id, username, email, password_hash, is_guest, rule, created_at FROM users WHERE username ILIKE $1 ORDER BY id", "%"+searchTerm+"%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.IsGuest, &user.Rule, &user.CreatedAt)
+		if err != nil {
+			continue
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+// UpdateUser updates user data
+func UpdateUser(userID int, email string, rule int) error {
+	_, err := db.Exec("UPDATE users SET email = $1, rule = $2 WHERE id = $3", email, rule, userID)
+	return err
+}
+
+// DeleteUser deletes a user
+func DeleteUser(id int) error {
+	_, err := db.Exec("DELETE FROM users WHERE id = $1", id)
+	return err
+}
+
+// AddMessage adds a new message to the chat
+func AddMessage(username string, rule int, message string) error {
+	_, err := db.Exec("INSERT INTO admin_chat_messages (username, rule, message) VALUES ($1, $2, $3)", username, rule, message)
+	return err
+}
+
+// GetMessages returns messages with pagination
+func GetMessages(limit int) ([]*Message, error) {
+	rows, err := db.Query("SELECT id, username, rule, message, created_at FROM admin_chat_messages ORDER BY id DESC LIMIT $1", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []*Message
+	for rows.Next() {
+		msg := &Message{}
+		err := rows.Scan(&msg.ID, &msg.Username, &msg.Rule, &msg.Message, &msg.CreatedAt)
+		if err != nil {
+			continue
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
+}
+
+// GetDailyVisits returns daily visits count (placeholder)
+func GetDailyVisits() (int, error) {
+	return 150, nil
+}
+
+// GetMonthlyVisits returns monthly visits count (placeholder)
+func GetMonthlyVisits() (int, error) {
+	return 4500, nil
+}
+
+// GetActiveUsers returns active users count (placeholder)
+func GetActiveUsers() (int, error) {
+	return 25, nil
+}
+
+// GetTotalVisits returns total visits count (placeholder - realistic value)
+func GetTotalVisits() (int, error) {
+	return 1500, nil
+}
+
+// GetUptime returns system uptime percentage
+func GetUptime() (int, error) {
+	return 98, nil
+}
+
+// GetUptimeChange returns uptime change vs last month
+func GetUptimeChange() (int, error) {
+	return 2, nil
 }

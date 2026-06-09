@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Tytyber</title>
+    <link rel="stylesheet" href="/assets/styles/admin.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="nav">
+        <div class="logo">Admin</div>
+        <ul class="nav-links">
+            <li><a href="/admin" class="nav-link active">dashboard</a></li>
+            <li><a href="/admin/users" class="nav-link">users</a></li>
+            <li><a href="/admin/chat" class="nav-link">admin chat</a></li>
+            <li><a href="/admin/blog" class="nav-link">blog</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>dashboard</h1>
+        </div>
+        <div class="page-controls">
+            <button class="refresh-btn">↺</button>
+            <button class="action-btn">↓</button>
+        </div>
+    </div>
+
+    <!-- Key Metrics Cards -->
+    <div class="metrics-grid">
+        <!-- Total Users Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <h3>total users</h3>
+            </div>
+            <div class="metric-value">{{.TotalUsers}}</div>
+            <div class="metric-subtitle">
+                общее количество пользователей
+            </div>
+        </div>
+
+        <!-- Monthly User Growth Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <h3>monthly growth</h3>
+            </div>
+            <div class="metric-value">{{.MonthlyNewUsers}}</div>
+            <div class="metric-subtitle">
+                приток пользователей за месяц
+            </div>
+        </div>
+
+        <!-- Total Visits Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <h3>total visits</h3>
+            </div>
+            <div class="metric-value">{{.TotalVisits}}</div>
+            <div class="metric-subtitle">
+                количество посещений
+            </div>
+        </div>
+
+        <!-- Active Users Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <h3>active now</h3>
+                <span class="trend up">● live</span>
+            </div>
+            <div class="metric-value">{{.ActiveUsers}}</div>
+            <div class="metric-subtitle">
+                <span>{{.OnlinePercentage}}%</span> of total users
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health -->
+    <section class="charts-section">
+        <h2 class="section-title">/01 SYSTEM STATUS</h2>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>system health</h3>
+                    <button class="icon-btn">•••</button>
+                </div>
+                <div class="chart-content">
+                    <div class="health-stats">
+                        <div class="health-label">uptime this month</div>
+                        <div class="health-value">{{.Uptime}}%</div>
+                        <div class="health-change">
+                            <span class="trend up">↑ {{.UptimeChange}}%</span>
+                            <span>vs last month</span>
+                        </div>
+                    </div>
+                    <canvas id="healthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- AI Insights -->
+            <div class="ai-card">
+                <div class="ai-header">
+                    <span class="ai-icon">⚡</span>
+                    <div>
+                        <h4>analytics ai</h4>
+                        <p>{{.AiInsight}}</p>
+                    </div>
+                    <span class="ai-arrow">→</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="/assets/js/admin.js"></script>
+</body>
+</html>
