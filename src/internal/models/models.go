@@ -12,6 +12,14 @@ type User struct {
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
+type Message struct {
+	ID        int       `json:"id" db:"id"`
+	Username  string    `json:"username" db:"username"`
+	Rule      int       `json:"rule" db:"rule"`
+	Message   string    `json:"message" db:"message"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
 type TerminalRequest struct {
 	Command   string `json:"command"`
 	Timestamp string `json:"timestamp"`

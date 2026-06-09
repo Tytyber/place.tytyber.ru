@@ -16,6 +16,14 @@ var db *sql.DB
 // Session state for interactive commands
 var sessionState *models.SessionState
 
+type Message struct {
+	ID        int       `json:"id" db:"id"`
+	Username  string    `json:"username" db:"username"`
+	Rule      int       `json:"rule" db:"rule"`
+	Message   string    `json:"message" db:"message"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
 func InitDB(host string, port int, user string, password string, dbname string) {
 	// Формируем URL правильно, даже если пароль пустой
 	var connStr string
@@ -132,7 +140,35 @@ func createTables() {
 		log.Fatal("Failed to insert moderator user:", err)
 	}
 
+	// Create chat table
+	createChatTable()
+
 	log.Println("Database tables initialized successfully")
+}
+
+func createChatTable() {
+	// Check if table exists
+	var tableName string
+	err := db.QueryRow("SELECT table_name FROM information_schema.tables WHERE table_name = 'admin_chat_messages'").Scan(&tableName)
+
+	if err == sql.ErrNoRows {
+		createChatTable := `
+		CREATE TABLE admin_chat_messages (
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(255) NOT NULL,
+			rule INTEGER DEFAULT 1,
+			message TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`
+
+		_, err = db.Exec(createChatTable)
+		if err != nil {
+			log.Fatal("Failed to create admin_chat_messages table:", err)
+		}
+		log.Println("Created admin_chat_messages table")
+	} else if err != nil {
+		log.Fatal("Error checking admin_chat_messages table:", err)
+	}
 }
 
 func checkAndAddColumn(table, column, definition string) {
@@ -364,6 +400,32 @@ func UpdateUser(userID int, email string, rule int) error {
 func DeleteUser(id int) error {
 	_, err := db.Exec("DELETE FROM users WHERE id = $1", id)
 	return err
+}
+
+// AddMessage adds a new message to the chat
+func AddMessage(username string, rule int, message string) error {
+	_, err := db.Exec("INSERT INTO admin_chat_messages (username, rule, message) VALUES ($1, $2, $3)", username, rule, message)
+	return err
+}
+
+// GetMessages returns messages with pagination
+func GetMessages(limit int) ([]*Message, error) {
+	rows, err := db.Query("SELECT id, username, rule, message, created_at FROM admin_chat_messages ORDER BY id DESC LIMIT $1", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []*Message
+	for rows.Next() {
+		msg := &Message{}
+		err := rows.Scan(&msg.ID, &msg.Username, &msg.Rule, &msg.Message, &msg.CreatedAt)
+		if err != nil {
+			continue
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
 }
 
 // GetDailyVisits returns daily visits count (placeholder)

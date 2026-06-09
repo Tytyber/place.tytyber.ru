@@ -38,6 +38,13 @@ func main() {
 	// Delete user handler
 	http.HandleFunc("/admin/users/delete", handlers.HandleDeleteUser)
 
+	// Admin chat page handler (only accessible for users with rule >= 2)
+	http.HandleFunc("/admin/chat", handlers.HandleAdminChat)
+	http.HandleFunc("/admin/chat/", handlers.HandleAdminChat)
+
+	// Send message handler
+	http.HandleFunc("/admin/chat/send", handlers.HandleSendMessage)
+
 	// Main page handler
 	http.HandleFunc("/", handlers.HandleMainPage)
 

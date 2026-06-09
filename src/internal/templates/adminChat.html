@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Chat - Tytyber</title>
+    <link rel="stylesheet" href="/assets/styles/admin.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="nav">
+        <div class="logo">Admin</div>
+        <ul class="nav-links">
+            <li><a href="/admin" class="nav-link">dashboard</a></li>
+            <li><a href="/admin/users" class="nav-link">users</a></li>
+            <li><a href="/admin/chat" class="nav-link active">admin chat</a></li>
+            <li><a href="/admin/blog" class="nav-link">blog</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>admin chat</h1>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+            {{range .Messages}}
+            <div class="message" data-id="{{.ID}}">
+                <div class="message-header">
+                    <span class="message-username">{{.Username}}</span>
+                    <span class="message-role">
+                        {{if eq .Username "tytyber"}}
+                            His majesty
+                        {{else}}
+                            {{if eq .Rule 2}}
+                                moderator
+                            {{else if eq .Rule 3}}
+                                admin
+                            {{else}}
+                                user
+                            {{end}}
+                        {{end}}
+                    </span>
+                </div>
+                <div class="message-content">{{.Message}}</div>
+                <div class="message-timestamp">{{.CreatedAt.Format "02 Jan 2006 15:04"}}</div>
+            </div>
+            {{else}}
+            <div class="no-messages">
+                <p>no messages yet. be the first to say hello!</p>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Send Message Form -->
+        <div class="chat-input-container">
+            <form class="chat-form" action="/admin/chat/send" method="POST">
+                <input type="text" name="message" placeholder="type your message..." required>
+                <button type="submit" class="send-btn">→</button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script src="/assets/js/admin.js"></script>
+<script>
+// Auto-refresh messages every 5 seconds
+setInterval(() => {
+    window.location.reload();
+}, 5000);
+</script>
+</body>
+</html>

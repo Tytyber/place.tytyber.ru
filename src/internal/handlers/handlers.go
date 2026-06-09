@@ -323,6 +323,83 @@ func HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/users", http.StatusSeeOther)
 }
 
+func HandleAdminChat(w http.ResponseWriter, r *http.Request) {
+	// Get current user from session
+	user, err := database.GetSessionUserFromRequest(r)
+	if err != nil {
+		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has admin rights (rule >= 2)
+	if user.Rule < 2 {
+		http.Error(w, "Access denied. Admin chat is only available for moderators and administrators.", http.StatusForbidden)
+		return
+	}
+
+	// Get messages
+	messages, err := database.GetMessages(50)
+	if err != nil {
+		http.Error(w, "Error getting messages", http.StatusInternalServerError)
+		return
+	}
+
+	// Prepare template data
+	data := map[string]interface{}{
+		"Messages":     messages,
+		"CurrentUser":  user,
+		"CurrentRule":  user.Rule,
+	}
+
+	// Serve adminChat.html template
+	err = templates.ExecuteTemplate(w, "adminChat.html", data)
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+	}
+}
+
+func HandleSendMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Get current user from session
+	user, err := database.GetSessionUserFromRequest(r)
+	if err != nil {
+		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has admin rights (rule >= 2)
+	if user.Rule < 2 {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	message := r.FormValue("message")
+	if message == "" {
+		http.Redirect(w, r, "/admin/chat", http.StatusSeeOther)
+		return
+	}
+
+	// Add message
+	err = database.AddMessage(user.Username, user.Rule, message)
+	if err != nil {
+		http.Error(w, "Error adding message", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back to chat
+	http.Redirect(w, r, "/admin/chat", http.StatusSeeOther)
+}
+
 func HandleCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Return current session user
 	user, _ := database.GetSessionUserFromRequest(r)
