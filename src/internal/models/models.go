@@ -52,3 +52,15 @@ type SessionState struct {
 	Password   string
 	User       *User // stores full user object with rule info
 }
+
+type BlogPost struct {
+	ID        int       `json:"id" db:"id"`
+	Title     string    `json:"title" db:"title"`
+	Content   string    `json:"content" db:"content"`
+	ImageURL  string    `json:"image_url" db:"image_url"`
+	ImageFile string    `json:"image_file" db:"image_file"`
+	Author    string    `json:"author" db:"author"`
+	Views     int       `json:"views" db:"views"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}

@@ -495,3 +495,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// File Upload Drag & Drop Handlers
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const file = files[0];
+        const fileInput = e.currentTarget.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.files = files;
+            // Show filename
+            const uploadText = e.currentTarget.querySelector('.file-upload-text');
+            if (uploadText) {
+                uploadText.textContent = file.name;
+            }
+        }
+    }
+}
+
+function handleFileSelect(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+        const file = files[0];
+        // Show filename
+        const uploadText = e.target.parentElement.querySelector('.file-upload-text');
+        if (uploadText) {
+            uploadText.textContent = file.name;
+        }
+    }
+}

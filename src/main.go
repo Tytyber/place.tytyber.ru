@@ -4,14 +4,23 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"place-tytyber/internal/config"
 	"place-tytyber/internal/database"
 	"place-tytyber/internal/handlers"
 )
 
 func main() {
+	// Load configuration
+	cfg := config.Load()
+
 	// Initialize database
-	// You can change these values to connect to your PostgreSQL
-	database.InitDB("192.168.1.3", 5432, "postgres", "", "tytyber_club")
+	database.InitDB(
+		cfg.DatabaseHost,
+		cfg.DatabasePort,
+		cfg.DatabaseUser,
+		cfg.DatabasePassword,
+		cfg.DatabaseName,
+	)
 
 	// Start session cleanup
 	database.StartSessionCleanup()
@@ -48,10 +57,22 @@ func main() {
 	// Main page handler
 	http.HandleFunc("/", handlers.HandleMainPage)
 
+	// Blog handlers
+	http.HandleFunc("/blog", handlers.HandleBlogList)
+	http.HandleFunc("/blog/post/", handlers.HandleBlogPost)
+
+	// Admin blog handlers
+	http.HandleFunc("/admin/blog", handlers.HandleBlogAdmin)
+	http.HandleFunc("/admin/blog/create", handlers.HandleCreateBlogPost)
+	http.HandleFunc("/admin/blog/create-form", handlers.HandleCreateBlogPostForm)
+	http.HandleFunc("/admin/blog/edit", handlers.HandleEditBlogPost)
+	http.HandleFunc("/admin/blog/delete", handlers.HandleDeleteBlogPost)
+
 	// Serve static files from templates directory
 	http.HandleFunc("/assets/", handlers.HandleStaticFiles)
+	http.HandleFunc("/uploads/", handlers.HandleUploadsFiles)
 
-	fmt.Println("Server starting on :8080")
+	fmt.Printf("Server starting on %s:%d\n", cfg.ServerHost, cfg.ServerPort)
 	fmt.Println("Database initialized successfully")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", cfg.ServerPort), nil))
 }

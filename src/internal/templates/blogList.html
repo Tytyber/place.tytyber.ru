@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - Tytyber club place</title>
+    <link rel="stylesheet" href="/assets/styles/index.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="nav">
+        <div class="logo">Tytyber</div>
+        <ul class="nav-links">
+            <li><a href="/blog">BLOG</a></li>
+            <li><a href="#services">SERVICES</a></li>
+            <li><a href="#about">ABOUT</a></li>
+            <li><a href="#labs">CONSOLE</a></li>
+            <li><a href="#contact">FORUM</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- Blog Header -->
+<section class="blog-list">
+    <div class="blog-header">
+        <h1>SYSTEM BLOG</h1>
+        <p>Последние записи из центрального узла Tytyber Club</p>
+    </div>
+
+    <!-- Blog Grid -->
+    <div class="blog-grid">
+        {{range .Posts}}
+        <div class="blog-card">
+            <div class="blog-card-image">
+                {{if .ImageFile}}
+                <img src="/uploads/{{.ImageFile}}" alt="{{.Title}}">
+                {{else if .ImageURL}}
+                <img src="{{.ImageURL}}" alt="{{.Title}}">
+                {{end}}
+            </div>
+            <div class="blog-card-content">
+                <div class="blog-card-meta">
+                    <span>/{{.Author}}</span>
+                    <span>{{.CreatedAt.Format "02.01.2006"}}</span>
+                </div>
+                <h3><a href="/blog/post/{{.ID}}">{{.Title}}</a></h3>
+                <p>{{substr .Content 0 150}}...</p>
+                <a href="/blog/post/{{.ID}}">READ DATA →</a>
+            </div>
+        </div>
+        {{else}}
+        <div class="blog-card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+            <p style="color: var(--neon-green);">No data available in system</p>
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Pagination -->
+    {{if gt .TotalPages 1}}
+    <div class="blog-pagination">
+        {{if gt .CurrentPage 1}}
+        <a href="/blog?page={{sub .CurrentPage 1}}">&larr; PREV</a>
+        {{else}}
+        <a class="disabled">&larr; PREV</a>
+        {{end}}
+        
+        <span class="current">PAGE {{.CurrentPage}}/{{.TotalPages}}</span>
+        
+        {{if lt .CurrentPage .TotalPages}}
+        <a href="/blog?page={{add .CurrentPage 1}}">NEXT &rarr;</a>
+        {{else}}
+        <a class="disabled">NEXT &rarr;</a>
+        {{end}}
+    </div>
+    {{end}}
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-grid">
+        <div class="footer-brand">
+            <div class="logo">Tytyber club</div>
+            <p>© 2026 Tytyber club team<br>ALL RIGHTS RESERVED.</p>
+        </div>
+        <div class="footer-links">
+            <h4>NAVIGATION</h4>
+            <ul>
+                <li><a href="#">Work</a></li>
+                <li><a href="#">Services</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Labs</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>RESOURCES</h4>
+            <ul>
+                <li><a href="#">Manifesto</a></li>
+                <li><a href="#">Blog</a></li>
+                <li><a href="#">Style Guide</a></li>
+                <li><a href="#">Newsletter</a></li>
+                <li><a href="#">Careers</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>SOCIALS</h4>
+            <ul>
+                <li><a href="https://discord.gg/yjB6pMrVYx">Discord</a></li>
+                <li><a href="https://github.com/Tytyber">GitHub</a></li>
+                <li><a href="https:/t.me/tytyber_club">Telegam</a></li>
+                <li><a href="https://www.youtube.com/@Tytyber-club">YouTube</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>GLOBAL NODE</h4>
+            <ul>
+                <li>LON</li>
+                <li>NY</li>
+                <li>TYO</li>
+                <li>BER</li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>> ACCESS GRANTED_</span>
+    </div>
+</footer>
+
+<script src="/assets/js/index.js"></script>
+</body>
+</html>

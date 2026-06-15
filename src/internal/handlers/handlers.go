@@ -2,11 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
+
 	"place-tytyber/internal/database"
 	"place-tytyber/internal/models"
 )
@@ -21,6 +27,23 @@ var templateFuncs = template.FuncMap{
 	},
 	"add": func(a, b int) int {
 		return a + b
+	},
+	"substr": func(s string, start, length int) string {
+		if start >= len(s) {
+			return ""
+		}
+		end := start + length
+		if end > len(s) {
+			end = len(s)
+		}
+		return s[start:end]
+	},
+	"isImage": func(url string) bool {
+		if url == "" {
+			return false
+		}
+		lower := strings.ToLower(url)
+		return strings.HasSuffix(lower, ".jpg") || strings.HasSuffix(lower, ".jpeg") || strings.HasSuffix(lower, ".png") || strings.HasSuffix(lower, ".gif") || strings.HasSuffix(lower, ".webp")
 	},
 }
 
@@ -182,7 +205,7 @@ func HandleUsersPage(w http.ResponseWriter, r *http.Request) {
 
 	// Get search term
 	searchTerm := r.URL.Query().Get("search")
-	
+
 	// Get page number
 	page := 1
 	if pageParam := r.URL.Query().Get("page"); pageParam != "" {
@@ -212,12 +235,12 @@ func HandleUsersPage(w http.ResponseWriter, r *http.Request) {
 
 	// Prepare template data
 	data := map[string]interface{}{
-		"Users":        users,
-		"TotalCount":   totalCount,
-		"TotalPages":   totalPages,
-		"CurrentPage":  page,
-		"SearchTerm":   searchTerm,
-		"CurrentRule":  currentUser.Rule,
+		"Users":       users,
+		"TotalCount":  totalCount,
+		"TotalPages":  totalPages,
+		"CurrentPage": page,
+		"SearchTerm":  searchTerm,
+		"CurrentRule": currentUser.Rule,
 	}
 
 	// Serve users.html template
@@ -346,9 +369,9 @@ func HandleAdminChat(w http.ResponseWriter, r *http.Request) {
 
 	// Prepare template data
 	data := map[string]interface{}{
-		"Messages":     messages,
-		"CurrentUser":  user,
-		"CurrentRule":  user.Rule,
+		"Messages":    messages,
+		"CurrentUser": user,
+		"CurrentRule": user.Rule,
 	}
 
 	// Serve adminChat.html template
@@ -403,15 +426,15 @@ func HandleSendMessage(w http.ResponseWriter, r *http.Request) {
 func HandleCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Return current session user
 	user, _ := database.GetSessionUserFromRequest(r)
-	
+
 	response := map[string]string{
 		"username": "guest",
 	}
-	
+
 	if user != nil {
 		response["username"] = user.Username
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -430,6 +453,401 @@ func HandleStaticFiles(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Serve from templates directory
 		filePath = filepath.Join("./internal/templates", r.URL.Path)
+	}
+
+	// Check if file exists
+	_, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Serve the file
+	http.ServeFile(w, r, filePath)
+}
+
+// Blog handlers
+
+func HandleBlogList(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/blog" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Get page number
+	page := 1
+	if pageParam := r.URL.Query().Get("page"); pageParam != "" {
+		if p, err := strconv.Atoi(pageParam); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	// Get blog posts
+	posts, err := database.GetBlogPosts(page, 10)
+	if err != nil {
+		http.Error(w, "Error getting blog posts", http.StatusInternalServerError)
+		return
+	}
+
+	// Get total count and calculate pages
+	totalCount, err := database.GetBlogPostCount()
+	if err != nil {
+		totalCount = 0
+	}
+	totalPages := (totalCount + 9) / 10
+
+	// Prepare template data
+	data := map[string]interface{}{
+		"Posts":       posts,
+		"TotalPages":  totalPages,
+		"CurrentPage": page,
+	}
+
+	// Serve blogList.html template
+	err = templates.ExecuteTemplate(w, "blogList.html", data)
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+	}
+}
+
+func HandleBlogPost(w http.ResponseWriter, r *http.Request) {
+	// Extract post ID from URL path
+	path := r.URL.Path
+	if len(path) <= 10 || path[:10] != "/blog/post" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Get ID after /blog/post/
+	idStr := path[11:]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Increment view count
+	database.IncrementBlogPostViews(id)
+
+	// Get blog post
+	post, err := database.GetBlogPostByID(id)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	// Prepare template data
+	data := map[string]interface{}{
+		"Post": post,
+	}
+
+	// Serve blogPost.html template
+	err = templates.ExecuteTemplate(w, "blogPost.html", data)
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+	}
+}
+
+func HandleBlogAdmin(w http.ResponseWriter, r *http.Request) {
+	// Get current user from session
+	user, err := database.GetSessionUserFromRequest(r)
+	if err != nil {
+		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has admin rights (rule == 3)
+	if user.Rule != 3 {
+		http.Error(w, "Access denied. Blog admin is only available for administrators.", http.StatusForbidden)
+		return
+	}
+
+	// Get page number
+	page := 1
+	if pageParam := r.URL.Query().Get("page"); pageParam != "" {
+		if p, err := strconv.Atoi(pageParam); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	// Get blog posts
+	posts, err := database.GetBlogPosts(page, 10)
+	if err != nil {
+		http.Error(w, "Error getting blog posts", http.StatusInternalServerError)
+		return
+	}
+
+	// Get total count and calculate pages
+	totalCount, err := database.GetBlogPostCount()
+	if err != nil {
+		totalCount = 0
+	}
+	totalPages := (totalCount + 9) / 10
+
+	// Prepare template data
+	data := map[string]interface{}{
+		"Posts":       posts,
+		"TotalPages":  totalPages,
+		"CurrentPage": page,
+		"CurrentUser": user,
+	}
+
+	// Serve blogAdmin.html template
+	err = templates.ExecuteTemplate(w, "blogAdmin.html", data)
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+	}
+}
+
+func HandleCreateBlogPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Get current user from session
+	user, err := database.GetSessionUserFromRequest(r)
+	if err != nil {
+		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has admin rights (rule == 3)
+	if user.Rule != 3 {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Parse multipart form data (for file upload)
+	err = r.ParseMultipartForm(32 << 20) // 32 MB max memory
+	if err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	title := r.FormValue("title")
+	content := r.FormValue("content")
+	imageUrl := r.FormValue("image_url")
+	imageFile := ""
+
+	// Handle file upload
+	if file, header, err := r.FormFile("image_file"); err == nil {
+		defer file.Close()
+
+		// Validate file type
+		if !isImageFile(header.Filename) {
+			http.Error(w, "Invalid file type. Only images are allowed", http.StatusBadRequest)
+			return
+		}
+
+		// Save file to uploads directory
+		filename, err := saveUploadedFile(file, header)
+		if err != nil {
+			http.Error(w, "Error saving file", http.StatusInternalServerError)
+			return
+		}
+		imageFile = filename
+	}
+
+	if title == "" || content == "" {
+		http.Error(w, "Title and content are required", http.StatusBadRequest)
+		return
+	}
+
+	// Create blog post
+	err = database.CreateBlogPost(title, content, user.Username, imageUrl, imageFile)
+	if err != nil {
+		http.Error(w, "Error creating blog post", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back to blog admin
+	http.Redirect(w, r, "/admin/blog", http.StatusSeeOther)
+}
+
+func HandleEditBlogPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Get current user from session
+	user, err := database.GetSessionUserFromRequest(r)
+	if err != nil {
+		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has admin rights (rule == 3)
+	if user.Rule != 3 {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Parse multipart form data (for file upload)
+	err = r.ParseMultipartForm(32 << 20) // 32 MB max memory
+	if err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	postID, err := strconv.Atoi(r.FormValue("post_id"))
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	title := r.FormValue("title")
+	content := r.FormValue("content")
+	imageUrl := r.FormValue("image_url")
+	imageFile := r.FormValue("image_file")
+
+	// Handle new file upload
+	if file, header, err := r.FormFile("new_image_file"); err == nil {
+		defer file.Close()
+
+		// Validate file type
+		if !isImageFile(header.Filename) {
+			http.Error(w, "Invalid file type. Only images are allowed", http.StatusBadRequest)
+			return
+		}
+
+		// Save file to uploads directory
+		filename, err := saveUploadedFile(file, header)
+		if err != nil {
+			http.Error(w, "Error saving file", http.StatusInternalServerError)
+			return
+		}
+		imageFile = filename
+	}
+
+	if title == "" || content == "" {
+		http.Error(w, "Title and content are required", http.StatusBadRequest)
+		return
+	}
+
+	// Update blog post
+	err = database.UpdateBlogPost(postID, title, content, imageUrl, imageFile)
+	if err != nil {
+		http.Error(w, "Error updating blog post", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back to blog admin
+	http.Redirect(w, r, "/admin/blog", http.StatusSeeOther)
+}
+
+func HandleCreateBlogPostForm(w http.ResponseWriter, r *http.Request) {
+	// Get current user from session
+	user, err := database.GetSessionUserFromRequest(r)
+	if err != nil {
+		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has admin rights (rule == 3)
+	if user.Rule != 3 {
+		http.Error(w, "Access denied. Blog admin is only available for administrators.", http.StatusForbidden)
+		return
+	}
+
+	// Serve blogCreate.html template
+	err = templates.ExecuteTemplate(w, "blogCreate.html", nil)
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+	}
+}
+
+func HandleDeleteBlogPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Get current user from session
+	user, err := database.GetSessionUserFromRequest(r)
+	if err != nil {
+		http.Error(w, "Error getting user", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if user has admin rights (rule == 3)
+	if user.Rule != 3 {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	postID, err := strconv.Atoi(r.FormValue("post_id"))
+	if err != nil {
+		http.Error(w, "Invalid post ID", http.StatusBadRequest)
+		return
+	}
+
+	// Delete blog post
+	err = database.DeleteBlogPost(postID)
+	if err != nil {
+		http.Error(w, "Error deleting blog post", http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect back to blog admin
+	http.Redirect(w, r, "/admin/blog", http.StatusSeeOther)
+}
+
+// isImageFile checks if the file is an image
+func isImageFile(filename string) bool {
+	lower := strings.ToLower(filename)
+	return strings.HasSuffix(lower, ".jpg") || strings.HasSuffix(lower, ".jpeg") || strings.HasSuffix(lower, ".png") || strings.HasSuffix(lower, ".gif") || strings.HasSuffix(lower, ".webp")
+}
+
+// saveUploadedFile saves the uploaded file to the uploads directory
+func saveUploadedFile(file multipart.File, header *multipart.FileHeader) (string, error) {
+	// Create uploads directory if it doesn't exist
+	uploadsDir := "./internal/templates/uploads"
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		return "", err
+	}
+
+	// Generate unique filename
+	timestamp := time.Now().Unix()
+	filename := fmt.Sprintf("%d_%s", timestamp, filepath.Base(header.Filename))
+
+	// Create destination file
+	destPath := filepath.Join(uploadsDir, filename)
+	dst, err := os.Create(destPath)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+
+	// Copy file content
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", err
+	}
+
+	return filename, nil
+}
+
+func HandleUploadsFiles(w http.ResponseWriter, r *http.Request) {
+	// Build file path for uploads directory
+	if r.URL.Path == "/uploads/" || r.URL.Path == "/uploads" {
+		http.NotFound(w, r)
+		return
+	}
+
+	var filePath string
+	if len(r.URL.Path) > 9 && r.URL.Path[:9] == "/uploads/" {
+		// Serve from uploads directory inside templates
+		filePath = filepath.Join("./internal/templates", "uploads", r.URL.Path[9:])
+	} else {
+		http.NotFound(w, r)
+		return
 	}
 
 	// Check if file exists
