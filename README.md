@@ -51,20 +51,32 @@ CREATE DATABASE tytyber_club;
 
 2. The application will automatically create the `users` table on first run
 
-### 3. Configure Database Connection
+### 3. Configure Environment
 
-Edit the database connection settings in `src/main.go`:
+Create a `.env` file in the project root with the following variables:
 
-```go
-database.InitDB("192.168.1.12", 5432, "postgres", "", "tytyber_club")
+```
+# Database Configuration
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=postgres
+DATABASE_PASSWORD=
+DATABASE_NAME=tytyber_club
+
+# Server Configuration
+SERVER_HOST=localhost
+SERVER_PORT=8080
+
+# Session Configuration
+SESSION_SECRET_KEY=place-tytyber-secret-key-change-in-production
+
+# Application Settings
+APP_NAME="Tytyber Place"
+APP_URL=http://localhost:8080
+DARK_MODE_ENABLED=false
 ```
 
-Change the following values:
-- Host: Your PostgreSQL host (default: `192.168.1.12`)
-- Port: PostgreSQL port (default: `5432`)
-- User: Your PostgreSQL username (default: `postgres`)
-- Password: Your PostgreSQL password (default: empty)
-- Database: Your database name (default: `tytyber_club`)
+All configuration is now managed through the `.env` file - no code changes needed!
 
 ### 4. Build and Run
 
@@ -128,6 +140,8 @@ To access dark mode:
 place.tytyber.ru/
 ├── src/
 │   ├── internal/
+│   │   ├── config/         # Configuration management
+│   │   │   └── config.go
 │   │   ├── database/       # Database operations
 │   │   │   └── db.go
 │   │   ├── handlers/       # HTTP handlers
@@ -145,6 +159,7 @@ place.tytyber.ru/
 │   │               ├── index.css
 │   │               └── dark.css
 │   └── main.go
+├── .env                   # Environment configuration
 ├── go.mod
 ├── go.sum
 └── README.md
@@ -153,13 +168,30 @@ place.tytyber.ru/
 ## 🔐 Security
 
 - Passwords are stored in plain text in the database (for simplicity in this demo)
-- Session management uses cookies
+- Session management uses cookies with Gorilla Sessions
 - Dark mode is protected and requires terminal access
+- **IMPORTANT**: Change `SESSION_SECRET_KEY` in `.env` to a strong random string in production
 
 ## 🐛 Known Issues
 
 - Password validation is case-sensitive
 - Session cleanup runs every hour
+
+## 📝 Environment Variables Reference
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_HOST` | PostgreSQL host | `localhost` |
+| `DATABASE_PORT` | PostgreSQL port | `5432` |
+| `DATABASE_USER` | Database username | `postgres` |
+| `DATABASE_PASSWORD` | Database password | `""` |
+| `DATABASE_NAME` | Database name | `tytyber_club` |
+| `SERVER_HOST` | Server host | `localhost` |
+| `SERVER_PORT` | Server port | `8080` |
+| `SESSION_SECRET_KEY` | Secret key for session encryption | `place-tytyber-secret-key-change-in-production` |
+| `APP_NAME` | Application name | `Tytyber Place` |
+| `APP_URL` | Application URL | `http://localhost:8080` |
+| `DARK_MODE_ENABLED` | Enable dark mode by default | `false` |
 
 ## 🤝 Contributing
 

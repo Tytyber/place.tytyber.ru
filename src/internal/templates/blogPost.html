@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Post.Title}} - Blog - Tytyber club place</title>
+    <link rel="stylesheet" href="/assets/styles/index.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="nav">
+        <div class="logo">Tytyber</div>
+        <ul class="nav-links">
+            <li><a href="/blog">BLOG</a></li>
+            <li><a href="/">HOME</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- Blog Post -->
+<section class="blog-post">
+    <div class="blog-post-header">
+        <h1>{{.Post.Title}}</h1>
+        <div class="blog-post-meta">
+            <span>AUTHOR: {{.Post.Author}}</span>
+            <span>PUBLISHED: {{.Post.CreatedAt.Format "02.01.2006"}}</span>
+            <span>Views: {{.Post.Views}}</span>
+        </div>
+    </div>
+
+    <div class="blog-post-content">
+        {{if .Post.ImageFile}}
+        <div class="blog-post-image">
+            <img src="/uploads/{{.Post.ImageFile}}" alt="{{.Post.Title}}">
+        </div>
+        {{else if .Post.ImageURL}}
+        <div class="blog-post-image">
+            <img src="{{.Post.ImageURL}}" alt="{{.Post.Title}}">
+        </div>
+        {{end}}
+        {{.Post.Content}}
+    </div>
+
+    <div style="text-align: center; margin-top: 3rem;">
+        <a href="/blog" class="btn-secondary" style="color: var(--white); border-color: var(--white);">← BACK TO BLOG</a>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-grid">
+        <div class="footer-brand">
+            <div class="logo">Tytyber club</div>
+            <p>© 2026 Tytyber club team<br>ALL RIGHTS RESERVED.</p>
+        </div>
+        <div class="footer-links">
+            <h4>NAVIGATION</h4>
+            <ul>
+                <li><a href="#">Work</a></li>
+                <li><a href="#">Services</a></li>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Labs</a></li>
+                <li><a href="#">Contact</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>RESOURCES</h4>
+            <ul>
+                <li><a href="#">Manifesto</a></li>
+                <li><a href="#">Blog</a></li>
+                <li><a href="#">Style Guide</a></li>
+                <li><a href="#">Newsletter</a></li>
+                <li><a href="#">Careers</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>SOCIALS</h4>
+            <ul>
+                <li><a href="https://discord.gg/yjB6pMrVYx">Discord</a></li>
+                <li><a href="https://github.com/Tytyber">GitHub</a></li>
+                <li><a href="https:/t.me/tytyber_club">Telegam</a></li>
+                <li><a href="https://www.youtube.com/@Tytyber-club">YouTube</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>GLOBAL NODE</h4>
+            <ul>
+                <li>LON</li>
+                <li>NY</li>
+                <li>TYO</li>
+                <li>BER</li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>> ACCESS GRANTED_</span>
+    </div>
+</footer>
+
+<script src="/assets/js/index.js"></script>
+</body>
+</html>

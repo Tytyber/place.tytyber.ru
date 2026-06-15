@@ -1,17 +1,22 @@
 package database
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
+	"place-tytyber/internal/config"
 	"place-tytyber/internal/models"
 	"time"
 
+	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 )
 
 var db *sql.DB
+var store *sessions.CookieStore
 
 // Session state for interactive commands
 var sessionState *models.SessionState
@@ -54,6 +59,27 @@ func InitDB(host string, port int, user string, password string, dbname string) 
 
 	log.Printf("Successfully connected to database: %s", dbname)
 	createTables()
+
+	// Initialize session store with config
+	cfg := config.Get()
+	store = sessions.NewCookieStore([]byte(cfg.SessionSecretKey))
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   3600 * 24 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   false,
+	}
+}
+
+func GetSessionState() *models.SessionState {
+	if sessionState == nil {
+		sessionState = &models.SessionState{}
+	}
+	return sessionState
+}
+
+func SetSessionState(state *models.SessionState) {
+	sessionState = state
 }
 
 func createTables() {
@@ -143,7 +169,45 @@ func createTables() {
 	// Create chat table
 	createChatTable()
 
+	// Create blog table
+	createBlogTable()
+
 	log.Println("Database tables initialized successfully")
+	migrateExistingPasswords()
+}
+
+// migrateExistingPasswords hashes passwords that are stored in plain text
+func migrateExistingPasswords() {
+	// Get all users with plain text passwords (empty or short passwords)
+	rows, err := db.Query("SELECT id, username, password_hash FROM users WHERE password_hash = '' OR LENGTH(password_hash) < 64")
+	if err != nil {
+		log.Printf("Warning: Could not query users for password migration: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	var updatedCount int
+	for rows.Next() {
+		var id int
+		var username, passwordHash string
+		err := rows.Scan(&id, &username, &passwordHash)
+		if err != nil {
+			continue
+		}
+
+		// Hash the existing password (even if empty, it will be hashed)
+		hashedPassword := hashPassword(passwordHash)
+		_, err = db.Exec("UPDATE users SET password_hash = $1 WHERE id = $2", hashedPassword, id)
+		if err != nil {
+			log.Printf("Warning: Could not update password for user %s: %v", username, err)
+		} else {
+			updatedCount++
+		}
+	}
+
+	if updatedCount > 0 {
+		log.Printf("Migrated %d existing passwords to hashed format", updatedCount)
+	}
 }
 
 func createChatTable() {
@@ -168,6 +232,38 @@ func createChatTable() {
 		log.Println("Created admin_chat_messages table")
 	} else if err != nil {
 		log.Fatal("Error checking admin_chat_messages table:", err)
+	}
+}
+
+func createBlogTable() {
+	// Check if table exists
+	var tableName string
+	err := db.QueryRow("SELECT table_name FROM information_schema.tables WHERE table_name = 'blog_posts'").Scan(&tableName)
+
+	if err == sql.ErrNoRows {
+		createBlogTable := `
+		CREATE TABLE blog_posts (
+			id SERIAL PRIMARY KEY,
+			title VARCHAR(255) NOT NULL,
+			content TEXT NOT NULL,
+			image_url TEXT DEFAULT '',
+			image_file TEXT DEFAULT '',
+			author VARCHAR(255) NOT NULL,
+			views INTEGER DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`
+
+		_, err = db.Exec(createBlogTable)
+		if err != nil {
+			log.Fatal("Failed to create blog_posts table:", err)
+		}
+		log.Println("Created blog_posts table")
+	} else if err != nil {
+		log.Fatal("Error checking blog_posts table:", err)
+	} else {
+		// Add image_file column if missing
+		checkAndAddColumn("blog_posts", "image_file", "TEXT DEFAULT ''")
 	}
 }
 
@@ -218,8 +314,15 @@ func GetUserByID(id int) (*models.User, error) {
 	return user, nil
 }
 
+func hashPassword(password string) string {
+	hash := sha256.New()
+	hash.Write([]byte(password))
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
 func CreateUser(username, password string) error {
-	_, err := db.Exec("INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)", username, "", password)
+	hashedPassword := hashPassword(password)
+	_, err := db.Exec("INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)", username, "", hashedPassword)
 	return err
 }
 
@@ -229,7 +332,9 @@ func CheckUserCredentials(username, password string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return storedPassword == password, nil
+	// Compare hashed password
+	inputHash := hashPassword(password)
+	return storedPassword == inputHash, nil
 }
 
 func CloseDB() {
@@ -241,9 +346,8 @@ func CloseDB() {
 // GetSessionUserFromRequest returns the current session user from the request
 // It reads from current_user cookie for persistence across requests
 func GetSessionUserFromRequest(r *http.Request) (*models.User, error) {
-	state := GetSessionState()
-
 	// First check if user is available in session state
+	state := GetSessionState()
 	if state.User != nil {
 		return state.User, nil
 	}
@@ -315,17 +419,6 @@ func StartSessionCleanup() {
 			sessionState = nil
 		}
 	}()
-}
-
-func GetSessionState() *models.SessionState {
-	if sessionState == nil {
-		sessionState = &models.SessionState{}
-	}
-	return sessionState
-}
-
-func SetSessionState(state *models.SessionState) {
-	sessionState = state
 }
 
 // GetTotalUsers returns total number of users
@@ -426,6 +519,78 @@ func GetMessages(limit int) ([]*Message, error) {
 		messages = append(messages, msg)
 	}
 	return messages, nil
+}
+
+// GetBlogPosts returns all blog posts with pagination
+func GetBlogPosts(page, limit int) ([]*models.BlogPost, error) {
+	offset := (page - 1) * limit
+	rows, err := db.Query("SELECT id, title, content, image_url, image_file, author, views, created_at, updated_at FROM blog_posts ORDER BY id DESC LIMIT $1 OFFSET $2", limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []*models.BlogPost
+	for rows.Next() {
+		post := &models.BlogPost{}
+		err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.ImageURL, &post.ImageFile, &post.Author, &post.Views, &post.CreatedAt, &post.UpdatedAt)
+		if err != nil {
+			continue
+		}
+		posts = append(posts, post)
+	}
+	return posts, nil
+}
+
+// GetBlogPostByID returns a single blog post by ID
+func GetBlogPostByID(id int) (*models.BlogPost, error) {
+	post := &models.BlogPost{}
+	err := db.QueryRow("SELECT id, title, content, image_url, image_file, author, views, created_at, updated_at FROM blog_posts WHERE id = $1", id).Scan(
+		&post.ID,
+		&post.Title,
+		&post.Content,
+		&post.ImageURL,
+		&post.ImageFile,
+		&post.Author,
+		&post.Views,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return post, nil
+}
+
+// CreateBlogPost creates a new blog post
+func CreateBlogPost(title, content, author, imageUrl, imageFile string) error {
+	_, err := db.Exec("INSERT INTO blog_posts (title, content, image_url, image_file, author, views) VALUES ($1, $2, $3, $4, $5, 0)", title, content, imageUrl, imageFile, author)
+	return err
+}
+
+// UpdateBlogPost updates an existing blog post
+func UpdateBlogPost(id int, title, content, imageUrl, imageFile string) error {
+	_, err := db.Exec("UPDATE blog_posts SET title = $1, content = $2, image_url = $3, image_file = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5", title, content, imageUrl, imageFile, id)
+	return err
+}
+
+// DeleteBlogPost deletes a blog post
+func DeleteBlogPost(id int) error {
+	_, err := db.Exec("DELETE FROM blog_posts WHERE id = $1", id)
+	return err
+}
+
+// IncrementBlogPostViews increments the view count for a blog post
+func IncrementBlogPostViews(id int) error {
+	_, err := db.Exec("UPDATE blog_posts SET views = views + 1 WHERE id = $1", id)
+	return err
+}
+
+// GetBlogPostCount returns total count of blog posts
+func GetBlogPostCount() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM blog_posts").Scan(&count)
+	return count, err
 }
 
 // GetDailyVisits returns daily visits count (placeholder)

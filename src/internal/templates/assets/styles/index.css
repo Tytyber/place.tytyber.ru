@@ -557,3 +557,476 @@ section {
         margin: 0 1rem;
     }
 }
+
+/* ==================== BLOG STYLES ==================== */
+
+/* Blog List Page */
+.blog-list {
+    max-width: 100%;
+    padding: 8rem 2rem 4rem;
+}
+
+.blog-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.blog-header h1 {
+    font-size: 4rem;
+    color: var(--neon-green);
+    margin-bottom: 1rem;
+    letter-spacing: -2px;
+}
+
+.blog-header p {
+    color: var(--text-gray);
+    font-size: 1.2rem;
+}
+
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.blog-card {
+    background: var(--gray);
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.blog-card:hover {
+    border-color: var(--neon-green);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(60, 175, 14, 0.2);
+}
+
+.blog-card-image {
+    height: 200px;
+    background: linear-gradient(135deg, var(--dark-gray) 0%, var(--gray) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--light-gray);
+    overflow: hidden;
+}
+
+.blog-card-image::before {
+    content: 'BLOG POST';
+    font-size: 1.5rem;
+    color: var(--neon-green);
+    opacity: 0.5;
+}
+
+.blog-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.blog-card:hover .blog-card-image img {
+    transform: scale(1.05);
+}
+
+.blog-card-content {
+    padding: 2rem;
+}
+
+.blog-card-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--neon-green);
+    margin-bottom: 1rem;
+}
+
+.blog-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--white);
+    line-height: 1.3;
+}
+
+.blog-card p {
+    color: var(--text-gray);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.blog-card a {
+    color: var(--neon-green);
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.blog-card a:hover {
+    color: var(--neon-yellow);
+}
+
+/* Blog Pagination */
+.blog-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 4rem;
+}
+
+.blog-pagination a {
+    display: block;
+    padding: 0.75rem 1.5rem;
+    background: var(--gray);
+    border: 1px solid var(--light-gray);
+    color: var(--white);
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.blog-pagination a:hover,
+.blog-pagination a.current {
+    background: var(--neon-green);
+    color: var(--black);
+    border-color: var(--neon-green);
+}
+
+.blog-pagination a.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Blog Post Page */
+.blog-post {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 8rem 2rem 4rem;
+}
+
+.blog-post-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.blog-post-header h1 {
+    font-size: 3.5rem;
+    color: var(--white);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.blog-post-meta {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    font-size: 0.9rem;
+    color: var(--neon-green);
+    margin-top: 1.5rem;
+}
+
+.blog-post-content {
+    background: var(--gray);
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    padding: 3rem;
+    line-height: 1.8;
+}
+
+.blog-post-image {
+    width: 100%;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--light-gray);
+}
+
+.blog-post-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: transform 0.3s;
+}
+
+.blog-post-image img:hover {
+    transform: scale(1.02);
+}
+
+.blog-post-content h2 {
+    color: var(--neon-green);
+    font-size: 2rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--light-gray);
+    padding-bottom: 0.5rem;
+}
+
+.blog-post-content h3 {
+    color: var(--white);
+    font-size: 1.5rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.blog-post-content p {
+    color: var(--text-gray);
+    margin-bottom: 1rem;
+}
+
+.blog-post-content pre {
+    background: var(--black);
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+}
+
+.blog-post-content code {
+    font-family: 'Courier New', monospace;
+    background: rgba(60, 175, 14, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    color: var(--neon-green);
+}
+
+.blog-post-content a {
+    color: var(--neon-green);
+    text-decoration: none;
+    border-bottom: 1px solid var(--neon-green);
+    padding-bottom: 2px;
+}
+
+.blog-post-content a:hover {
+    color: var(--neon-yellow);
+    border-color: var(--neon-yellow);
+}
+
+/* Blog Admin Page */
+.blog-admin {
+    max-width: 100%;
+    padding: 8rem 2rem 4rem;
+}
+
+.blog-admin h1 {
+    color: var(--neon-green);
+    margin-bottom: 2rem;
+}
+
+.admin-controls {
+    margin-bottom: 2rem;
+}
+
+.admin-controls button {
+    background: var(--neon-green);
+    color: var(--black);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.admin-controls button:hover {
+    background: var(--neon-yellow);
+}
+
+.admin-controls form {
+    display: inline-block;
+}
+
+.blog-admin-list {
+    background: var(--gray);
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.blog-admin-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.blog-admin-list th,
+.blog-admin-list td {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.blog-admin-list th {
+    background: var(--dark-gray);
+    color: var(--neon-green);
+    font-weight: bold;
+}
+
+.blog-admin-list tr:hover {
+    background: rgba(60, 175, 14, 0.05);
+}
+
+.admin-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.admin-actions button {
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.btn-edit {
+    background: var(--neon-green);
+    color: var(--black);
+}
+
+.btn-delete {
+    background: #ff5f56;
+    color: var(--white);
+}
+
+.btn-edit:hover {
+    background: var(--neon-yellow);
+}
+
+.btn-delete:hover {
+    background: #ff3b30;
+}
+
+/* Blog Admin Form */
+.blog-admin-form {
+    max-width: 700px;
+    margin: 2rem auto;
+    background: var(--gray);
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    padding: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    color: var(--neon-green);
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--dark-gray);
+    border: 1px solid var(--light-gray);
+    color: var(--white);
+    font-family: inherit;
+    border-radius: 4px;
+}
+
+.form-group textarea {
+    height: 300px;
+    resize: vertical;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--neon-green);
+}
+
+.file-upload {
+    border: 2px dashed var(--light-gray);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s;
+    cursor: pointer;
+    background: var(--dark-gray);
+}
+
+.file-upload:hover,
+.file-upload.drag-over {
+    border-color: var(--neon-green);
+    background: rgba(60, 175, 14, 0.05);
+}
+
+.file-upload label {
+    margin: 0;
+    cursor: pointer;
+}
+
+.file-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--white);
+}
+
+.file-upload-icon {
+    font-size: 3rem;
+    color: var(--neon-green);
+}
+
+.file-upload-text {
+    font-size: 1rem;
+    color: var(--text-gray);
+}
+
+.file-upload input[type="file"] {
+    display: none;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Responsive Blog */
+@media (max-width: 768px) {
+    .blog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .blog-post-header h1 {
+        font-size: 2rem;
+    }
+
+    .blog-post-content {
+        padding: 1.5rem;
+    }
+
+    .admin-actions {
+        flex-direction: column;
+    }
+
+    .admin-controls {
+        text-align: center;
+    }
+
+    .blog-admin-list th,
+    .blog-admin-list td {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-actions {
+        margin-top: 1rem;
+    }
+
+    .blog-card-image {
+        height: 150px;
+    }
+
+    .file-upload {
+        padding: 1.5rem;
+    }
+}

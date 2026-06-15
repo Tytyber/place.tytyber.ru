@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Admin - Tytyber club place</title>
+    <link rel="stylesheet" href="/assets/styles/index.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="nav">
+        <div class="logo">Tytyber</div>
+        <ul class="nav-links">
+            <li><a href="/blog">BLOG</a></li>
+            <li><a href="/admin">ADMIN</a></li>
+            <li><a href="/admin/users">USERS</a></li>
+            <li><a href="/admin/chat">CHAT</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- Blog Admin -->
+<section class="blog-admin">
+    <h1>/07 BLOG ADMIN PANEL</h1>
+
+    <div class="admin-controls">
+        <button onclick="location.href='/admin/blog/create-form'">CREATE NEW POST</button>
+    </div>
+
+    {{if .Posts}}
+    <div class="blog-admin-list">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>TITLE</th>
+                    <th>AUTHOR</th>
+                    <th>DATE</th>
+                    <th>VIEW</th>
+                    <th>ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Posts}}
+                <tr>
+                    <td>{{.ID}}</td>
+                    <td>{{.Title}}</td>
+                    <td>{{.Author}}</td>
+                    <td>{{.CreatedAt.Format "02.01.2006"}}</td>
+                    <td>{{.Views}}</td>
+                    <td class="admin-actions">
+                        <button class="btn-edit" onclick="editPost({{.ID}}, '{{.Title}}')">EDIT</button>
+                        <button class="btn-delete" onclick="deletePost({{.ID}})">DELETE</button>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {{if gt .TotalPages 1}}
+    <div class="blog-pagination" style="margin-top: 2rem;">
+        {{if gt .CurrentPage 1}}
+        <a href="/admin/blog?page={{sub .CurrentPage 1}}">&larr; PREV</a>
+        {{else}}
+        <a class="disabled">&larr; PREV</a>
+        {{end}}
+        
+        <span class="current">PAGE {{.CurrentPage}}/{{.TotalPages}}</span>
+        
+        {{if lt .CurrentPage .TotalPages}}
+        <a href="/admin/blog?page={{add .CurrentPage 1}}">NEXT &rarr;</a>
+        {{else}}
+        <a class="disabled">NEXT &rarr;</a>
+        {{end}}
+    </div>
+    {{end}}
+    {{else}}
+    <p style="text-align: center; color: var(--neon-green); margin-top: 2rem;">No data available in system</p>
+    {{end}}
+</section>
+
+<!-- Admin Panel Footer -->
+<footer class="footer">
+    <div class="footer-bottom" style="text-align: center; margin-top: 3rem; padding-top: 2rem;">
+        <span>> ACCESS GRANTED_</span>
+    </div>
+</footer>
+
+<script>
+function editPost(id, title) {
+    const content = prompt('Enter new content for post "' + title + '":', '');
+    if (content === null) return;
+    
+    const imageUrl = prompt('Enter new image URL for post "' + title + '":', '');
+    const newImageFile = prompt('Enter new image file path (leave empty to keep current):', '');
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/blog/edit';
+    form.enctype = 'multipart/form-data';
+    
+    const postIdInput = document.createElement('input');
+    postIdInput.type = 'hidden';
+    postIdInput.name = 'post_id';
+    postIdInput.value = id;
+    
+    const titleInput = document.createElement('input');
+    titleInput.type = 'hidden';
+    titleInput.name = 'title';
+    titleInput.value = title;
+    
+    const contentInput = document.createElement('textarea');
+    contentInput.type = 'hidden';
+    contentInput.name = 'content';
+    contentInput.value = content;
+    
+    const imageUrlInput = document.createElement('input');
+    imageUrlInput.type = 'hidden';
+    imageUrlInput.name = 'image_url';
+    imageUrlInput.value = imageUrl;
+    
+    const imageFileInput = document.createElement('input');
+    imageFileInput.type = 'hidden';
+    imageFileInput.name = 'image_file';
+    imageFileInput.value = newImageFile;
+    
+    const newImageFileInput = document.createElement('input');
+    newImageFileInput.type = 'file';
+    newImageFileInput.name = 'new_image_file';
+    newImageFileInput.accept = 'image/*';
+    
+    form.appendChild(postIdInput);
+    form.appendChild(titleInput);
+    form.appendChild(contentInput);
+    form.appendChild(imageUrlInput);
+    form.appendChild(imageFileInput);
+    form.appendChild(newImageFileInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function deletePost(id) {
+    if (!confirm('WARNING: This will permanently delete the post data. Continue?')) {
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/blog/delete';
+    
+    const postIdInput = document.createElement('input');
+    postIdInput.type = 'hidden';
+    postIdInput.name = 'post_id';
+    postIdInput.value = id;
+    
+    form.appendChild(postIdInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+<script src="/assets/js/index.js"></script>
+</body>
+</html>
