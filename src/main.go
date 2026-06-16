@@ -54,6 +54,28 @@ func main() {
 	// Send message handler
 	http.HandleFunc("/admin/chat/send", handlers.HandleSendMessage)
 
+	// Logout handler
+	http.HandleFunc("/logout", handlers.HandleLogout)
+
+	// Profile page handler
+	http.HandleFunc("/profile", handlers.HandleProfilePage)
+
+	// Update profile handler
+	http.HandleFunc("/profile/update", handlers.HandleUpdateProfile)
+
+	// Forum handlers
+	http.HandleFunc("/forum", handlers.HandleForum)
+	http.HandleFunc("/forum/f/", handlers.HandleForum)
+	http.Handle("/forum/topic/", http.StripPrefix("/forum/topic/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.HandleForumTopic(w, r)
+	})))
+	http.HandleFunc("/forum/topic/create", handlers.HandleCreateTopic)
+	http.HandleFunc("/forum/topic/reply", handlers.HandleCreateReply)
+	http.HandleFunc("/forum/topic/delete", handlers.HandleDeleteTopic)
+	http.HandleFunc("/forum/reply/delete", handlers.HandleDeleteReply)
+	http.HandleFunc("/forum/folder/create", handlers.HandleCreateFolder)
+	http.HandleFunc("/forum/folder/delete", handlers.HandleDeleteFolder)
+
 	// Main page handler
 	http.HandleFunc("/", handlers.HandleMainPage)
 

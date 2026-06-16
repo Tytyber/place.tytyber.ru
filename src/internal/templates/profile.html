@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Tytyber Club</title>
+    <link rel="stylesheet" href="/assets/styles/index.css">
+    <link rel="stylesheet" href="/assets/styles/profile.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="nav">
+        <div class="logo">Tytyber</div>
+        <ul class="nav-links">
+            <li><a href="/" class="nav-link">home</a></li>
+            <li><a href="/blog" class="nav-link">blog</a></li>
+            <li><a href="/admin" class="nav-link">admin</a></li>
+            <li><a href="/admin/users" class="nav-link">users</a></li>
+            <li><a href="/profile" class="nav-link">profile</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- Main Content -->
+<main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="page-title">
+            <h1>profile</h1>
+        </div>
+        <div class="page-controls">
+            <button class="refresh-btn" onclick="openModal()" title="Edit Profile">✏️</button>
+            <a href="/" class="refresh-btn" title="Back">←</a>
+        </div>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="profile-card">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{if .Avatar}}
+                    <img src="/uploads/{{.Avatar}}" alt="{{.Username}}" onerror="this.style.display='none'; this.parentElement.innerHTML='<span>{{substr .Username 0 1}}</span>'">
+                {{else}}
+                    <span>{{substr .Username 0 1}}</span>
+                {{end}}
+            </div>
+            <div class="profile-username">
+                <h2 class="username">{{.Username}}</h2>
+                <span class="user-id">ID: {{.ID}}</span>
+            </div>
+        </div>
+
+        <div class="profile-details">
+            <div class="detail-group">
+                <label>email</label>
+                <span class="detail-value">{{.Email}}</span>
+            </div>
+
+            <div class="detail-group">
+                <label>права доступа</label>
+                <span class="detail-value rule-{{.Rule}}">{{.RuleName}}</span>
+            </div>
+
+            <div class="detail-group">
+                <label>дата регистрации</label>
+                <span class="detail-value">{{.CreatedAt.Format "02 Jan 2006"}}</span>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <form action="/logout" method="POST">
+                <button type="submit" class="btn-logout">logout</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="edit-profile-modal" id="editProfileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Profile</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <form action="/profile/update" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="user_id" value="{{.ID}}">
+                
+                <div class="form-group">
+                    <label>username</label>
+                    <input type="text" name="username" value="{{.Username}}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>email</label>
+                    <input type="email" name="email" value="{{.Email}}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>avatar (optional)</label>
+                    <input type="file" name="avatar" accept="image/*">
+                    <small class="form-hint">Leave empty to keep current avatar</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">cancel</button>
+                    <button type="submit" class="btn-save">save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">✉️</div>
+            <h3>Сообщения</h3>
+            <span class="stat-value">{{.MessagesCount}}</span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📝</div>
+            <h3>Посты</h3>
+            <span class="stat-value">{{.PostsCount}}</span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👁️</div>
+            <h3>Просмотры</h3>
+            <span class="stat-value">{{.TotalViews}}</span>
+        </div>
+    </div>
+</main>
+
+<script src="/assets/js/profile.js"></script>
+</body>
+</html>

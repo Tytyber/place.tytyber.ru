@@ -38,7 +38,9 @@ class Terminal {
 
     fetchCurrentUser() {
         // Fetch current user from backend
-        fetch('/api/current-user')
+        fetch('/api/current-user', {
+            credentials: 'include'
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.username) {
@@ -117,6 +119,7 @@ class Terminal {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     command: command,
                     timestamp: new Date().toISOString()
