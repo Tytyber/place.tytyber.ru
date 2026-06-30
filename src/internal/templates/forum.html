@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Форум - Tytyber Club</title>
+    <link rel="stylesheet" href="/assets/styles/index.css">
+    <style>
+        .forum-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 160px 20px 20px;
+        }
+
+        .forum-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .forum-title h1 {
+            color: var(--text-color);
+            font-size: 2.5rem;
+            margin: 0;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-form input {
+            padding: 10px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-color);
+            font-size: 1rem;
+            min-width: 250px;
+        }
+
+        .search-form button {
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .search-form button:hover {
+            background: var(--primary-hover);
+        }
+
+        .folders-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .folder-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            background: var(--bg-secondary);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .folder-btn.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .folder-btn:hover {
+            border-color: var(--primary-color);
+        }
+
+        .folders-nav .folder-btn.add {
+            border-style: dashed;
+            opacity: 0.7;
+        }
+
+        /* Modal textarea styles */
+        #createTopicModal textarea,
+        #createFolderModal textarea {
+            max-height: 200px;
+            overflow-y: auto;
+            resize: none;
+        }
+
+        .topics-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .topic-card {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            display: flex;
+            gap: 20px;
+        }
+
+        .topic-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .topic-card.pinned {
+            border-left: 4px solid #ffd700;
+        }
+
+        .topic-card.closed {
+            opacity: 0.7;
+        }
+
+        .topic-icon {
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+            border-radius: 12px;
+        }
+
+        .topic-info {
+            flex: 1;
+        }
+
+        .topic-title {
+            font-size: 1.3rem;
+            color: var(--text-color);
+            margin: 0 0 10px 0;
+        }
+
+        .topic-title a {
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .topic-title a:hover {
+            color: var(--primary-color);
+        }
+
+        .topic-meta {
+            display: flex;
+            gap: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .topic-stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .create-topic-btn {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .create-topic-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .pagination a, .pagination span {
+            padding: 10px 18px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .pagination a:hover {
+            border-color: var(--primary-color);
+        }
+
+        .pagination .active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .no-topics {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .no-topics h3 {
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        @media (max-width: 768px) {
+            .topic-card {
+                flex-direction: column;
+            }
+
+            .topic-stats {
+                order: 2;
+                margin-top: 15px;
+            }
+
+            .topic-info {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">Tytyber</div>
+            <ul class="nav-links">
+                <li><a href="/">HOME</a></li>
+                <li><a href="/blog">BLOG</a></li>
+                <li><a href="/forum" class="active">FORUM</a></li>
+                <li><a href="#contact">CONTACT</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="forum-container">
+        <!-- Header -->
+        <div class="forum-header">
+            <div class="forum-title">
+                <h1>Форум</h1>
+                <p>Обсуждения, идеи и помощь сообщества</p>
+            </div>
+            <div class="search-form">
+                <form method="GET" action="/forum">
+                    <input type="text" name="search" placeholder="Поиск по заголовкам и пользователям..." value="{{.SearchTerm}}">
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Folders Navigation -->
+        <div class="folders-nav">
+            <button class="folder-btn {{if not .CurrentFolder}}active{{end}}" onclick="window.location.href='/forum'">
+                📁 Все темы
+            </button>
+            {{range .Folders}}
+            <button class="folder-btn {{if eq .ID $.CurrentFolder}}active{{end}}" onclick="window.location.href='/forum/f/{{.ID}}'">
+                {{.Icon}} {{.Name}}
+            </button>
+            {{end}}
+            {{if ge .CurrentRule 2}}
+            <button class="folder-btn add" onclick="showCreateFolderModal()">+ Папка</button>
+            {{end}}
+        </div>
+
+        <!-- Create Topic Button -->
+        <div style="margin-bottom: 20px; text-align: right;">
+            {{if not .CurrentUser.IsGuest}}
+            <button class="create-topic-btn" onclick="showCreateTopicModal()">
+                + Создать тему
+            </button>
+            {{else}}
+            <p style="color: var(--text-secondary);">Войдите, чтобы создавать темы</p>
+            {{end}}
+        </div>
+
+        <!-- Topics List -->
+        <div class="topics-grid">
+            {{if .Topics}}
+                {{range .Topics}}
+                <div class="topic-card {{if .IsPinned}}pinned{{end}} {{if .IsClosed}}closed{{end}}">
+                    <div class="topic-icon">📝</div>
+                    <div class="topic-info">
+                        <h3 class="topic-title">
+                            <a href="/forum/topic/{{.ID}}">{{.Title}}</a>
+                            {{if .IsPinned}}📌{{end}}
+                        </h3>
+                        <p style="color: var(--text-secondary); margin: 0 0 15px 0;">
+                            {{if .FolderName}}В папке: {{.FolderName}} • {{end}}
+                            Автор: <a href="#" style="color: var(--primary-color);">{{.Author}}</a> • {{.CreatedAt.Format "02.01.2006"}}
+                        </p>
+                        <div class="topic-stats">
+                            <div class="stat">
+                                <span class="stat-label">👁️</span>
+                                <span>{{.Views}}</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">💬</span>
+                                <span>{{.Replies}}</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">🕒</span>
+                                <span>{{.LastActive.Format "02.01.2006 15:04"}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+            {{else}}
+                <div class="no-topics">
+                    <h3>Нет тем</h3>
+                    <p>{{if .SearchTerm}}Ничего не найдено по запросу "{{.SearchTerm}}">{{else}}В этой категории пока нет тем{{end}}</p>
+                    {{if not .CurrentUser.IsGuest}}
+                    <button class="create-topic-btn" onclick="showCreateTopicModal()" style="margin-top: 20px;">Создать первую тему</button>
+                    {{end}}
+                </div>
+            {{end}}
+        </div>
+
+        <!-- Pagination -->
+        {{if gt .TotalPages 1}}
+        <div class="pagination">
+            {{if gt .CurrentPage 1}}
+            <a href="/forum{{if .CurrentFolder}}/f/{{.CurrentFolder}}{{end}}?page={{sub .CurrentPage 1}}{{if .SearchTerm}}&search={{.SearchTerm}}{{end}}">⬅️ Назад</a>
+            {{end}}
+            
+            {{range $i, $p := seq 1 .TotalPages}}
+                {{if eq $i $.CurrentPage}}
+                <span class="active">{{$i}}</span>
+                {{else}}
+                <a href="/forum{{if $.CurrentFolder}}/f/{{$.CurrentFolder}}{{end}}?page={{$i}}{{if $.SearchTerm}}&search={{$.SearchTerm}}{{end}}">{{$i}}</a>
+                {{end}}
+            {{end}}
+            
+            {{if lt .CurrentPage .TotalPages}}
+            <a href="/forum{{if .CurrentFolder}}/f/{{.CurrentFolder}}{{end}}?page={{add .CurrentPage 1}}{{if .SearchTerm}}&search={{.SearchTerm}}{{end}}">Вперед ➡️</a>
+            {{end}}
+        </div>
+        {{end}}
+    </main>
+
+    <!-- Create Topic Modal -->
+    <div id="createTopicModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Создать новую тему</h2>
+                <button class="close-btn" onclick="closeModal('createTopicModal')">&times;</button>
+            </div>
+            <form action="/forum/topic/create" method="POST">
+                <div class="form-group">
+                    <label for="title">Заголовок темы:</label>
+                    <input type="text" id="title" name="title" required maxlength="255">
+                </div>
+                <div class="form-group">
+                    <label for="folder_id">Папка:</label>
+                    <select id="folder_id" name="folder_id">
+                        {{range .Folders}}
+                        <option value="{{.ID}}">{{.Icon}} {{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="content">Содержание:</label>
+                    <textarea id="content" name="content" rows="6" required placeholder="Поддерживается Markdown"></textarea>
+                    <small style="color: var(--neon-green); font-size: 0.75rem;">Поддерживается Markdown</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal('createTopicModal')">Отмена</button>
+                    <button type="submit" class="btn-primary">Создать тему</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Folder Modal (Admin only) -->
+    <div id="createFolderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Создать новую папку</h2>
+                <button class="close-btn" onclick="closeModal('createFolderModal')">&times;</button>
+            </div>
+            <form action="/forum/folder/create" method="POST">
+                <div class="form-group">
+                    <label for="folder_name">Название:</label>
+                    <input type="text" id="folder_name" name="name" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="folder_slug">SLUG (для URL):</label>
+                    <input type="text" id="folder_slug" name="slug" required maxlength="100" placeholder="напр., obshchee">
+                </div>
+                <div class="form-group">
+                    <label for="folder_description">Описание:</label>
+                    <textarea id="folder_description" name="description" rows="3" maxlength="255"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="folder_icon">Иконка:</label>
+                    <input type="text" id="folder_icon" name="icon" maxlength="10" value="📁">
+                </div>
+                <div class="form-group">
+                    <label for="folder_order">Порядок:</label>
+                    <input type="number" id="folder_order" name="order" value="0">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeModal('createFolderModal')">Отмена</button>
+                    <button type="submit" class="btn-primary">Создать папку</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bottom">
+            <span>> ACCESS GRANTED_</span>
+        </div>
+    </footer>
+
+    <script>
+        function showCreateTopicModal() {
+            document.getElementById('createTopicModal').style.display = 'flex';
+        }
+
+        function showCreateFolderModal() {
+            document.getElementById('createFolderModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

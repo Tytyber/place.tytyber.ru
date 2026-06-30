@@ -10,6 +10,7 @@ type User struct {
 	IsGuest   bool      `json:"is_guest" db:"is_guest"`
 	Rule      int       `json:"rule" db:"rule"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	Avatar    string    `json:"avatar" db:"avatar"`
 }
 
 type Message struct {
@@ -63,4 +64,47 @@ type BlogPost struct {
 	Views     int       `json:"views" db:"views"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+type ForumFolder struct {
+	ID          int       `json:"id" db:"id"`
+	Name        string    `json:"name" db:"name"`
+	Slug        string    `json:"slug" db:"slug"`
+	Description string    `json:"description" db:"description"`
+	Icon        string    `json:"icon" db:"icon"`
+	Order       int       `json:"order" db:"order"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+}
+
+type ForumTopic struct {
+	ID         int       `json:"id" db:"id"`
+	Title      string    `json:"title" db:"title"`
+	Content    string    `json:"content" db:"content"`
+	FolderID   int       `json:"folder_id" db:"folder_id"`
+	Author     string    `json:"author" db:"author"`
+	AuthorID   int       `json:"author_id" db:"author_id"`
+	Views      int       `json:"views" db:"views"`
+	Replies    int       `json:"replies" db:"replies"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	LastActive time.Time `json:"last_active" db:"last_active"`
+	IsPinned   bool      `json:"is_pinned" db:"is_pinned"`
+	IsClosed   bool      `json:"is_closed" db:"is_closed"`
+	FolderName string    `json:"folder_name" db:"folder_name"`
+}
+
+type ForumReply struct {
+	ID        int       `json:"id" db:"id"`
+	TopicID   int       `json:"topic_id" db:"topic_id"`
+	Content   string    `json:"content" db:"content"`
+	Author    string    `json:"author" db:"author"`
+	AuthorID  int       `json:"author_id" db:"author_id"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+
+type ForumStats struct {
+	TotalTopics   int `json:"total_topics"`
+	TotalReplies  int `json:"total_replies"`
+	TotalUsers    int `json:"total_users"`
+	OnlineUsers   int `json:"online_users"`
+	TotalViews    int `json:"total_views"`
 }
