@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Topic.Title}} - Форум - Tytyber Club</title>
+    <link rel="stylesheet" href="/assets/styles/index.css">
+    <style>
+        .topic-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 160px 20px 20px;
+        }
+
+        .topic-header {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .topic-header h1 {
+            color: var(--text-color);
+            margin: 0 0 15px 0;
+            font-size: 2rem;
+        }
+
+        .topic-meta {
+            display: flex;
+            gap: 30px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .topic-content {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .topic-content p {
+            line-height: 1.8;
+            color: var(--text-color);
+        }
+
+        .topic-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary-color);
+        }
+
+        .action-btn.delete {
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
+        .action-btn.delete:hover {
+            background: #ff4757;
+            color: white;
+        }
+
+        .replies-container {
+            margin-top: 30px;
+        }
+
+        .replies-header {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: var(--text-color);
+        }
+
+        .reply {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .reply-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .reply-author {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .reply-date {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .reply-content {
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .reply-actions {
+            margin-top: 15px;
+        }
+
+        .add-reply {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .add-reply textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-color);
+            font-size: 1rem;
+            resize: none;
+            margin-bottom: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .add-reply button {
+            padding: 12px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .add-reply button:hover {
+            background: var(--primary-hover);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .pagination a, .pagination span {
+            padding: 10px 18px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .pagination a:hover {
+            border-color: var(--primary-color);
+        }
+
+        .pagination .active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .topic-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .reply-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">Tytyber</div>
+            <ul class="nav-links">
+                <li><a href="/">HOME</a></li>
+                <li><a href="/blog">BLOG</a></li>
+                <li><a href="/forum" class="active">FORUM</a></li>
+                <li><a href="#contact">CONTACT</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="topic-container">
+        <a href="/forum" class="back-link">← Назад к форуму</a>
+
+        <!-- Topic Header -->
+        <div class="topic-header">
+            <h1>{{.Topic.Title}}</h1>
+            <div class="topic-meta">
+                <div class="meta-item">
+                    <span>👤</span>
+                    <span>Автор: <a href="#" style="color: var(--primary-color);">{{.Topic.Author}}</a></span>
+                </div>
+                <div class="meta-item">
+                    <span>📅</span>
+                    <span>Создано: {{.Topic.CreatedAt.Format "02.01.2006 15:04"}}</span>
+                </div>
+                <div class="meta-item">
+                    <span>👁️</span>
+                    <span>{{.Topic.Views}} просмотров</span>
+                </div>
+                <div class="meta-item">
+                    <span>💬</span>
+                    <span>{{.Topic.Replies}} ответов</span>
+                </div>
+                <div class="meta-item">
+                    <span>🕒</span>
+                    <span>Последний: {{.Topic.LastActive.Format "02.01.2006 15:04"}}</span>
+                </div>
+                {{if .Topic.IsPinned}}
+                <div class="meta-item">
+                    <span>📌</span>
+                    <span>Закреплено</span>
+                </div>
+                {{end}}
+                {{if .Topic.IsClosed}}
+                <div class="meta-item">
+                    <span>🔒</span>
+                    <span>Закрыто</span>
+                </div>
+                {{end}}
+            </div>
+            <div class="topic-actions">
+                {{if or (eq .CurrentRule 2) (eq .CurrentRule 3) .IsAuthor}}
+                <button class="action-btn delete" onclick="deleteTopic({{.Topic.ID}})">🗑️ Удалить тему</button>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Topic Content -->
+        <div class="topic-content">
+            {{markdown .Topic.Content}}
+        </div>
+
+        <!-- Replies -->
+        <div class="replies-container">
+            <h2 class="replies-header">Ответы ({{add (len .Replies) 0}})</h2>
+            
+            {{range .Replies}}
+            <div class="reply">
+                <div class="reply-header">
+                    <span class="reply-author">{{.Author}}</span>
+                    <span class="reply-date">{{.CreatedAt.Format "02.01.2006 15:04"}}</span>
+                </div>
+                <div class="reply-content">
+                    {{markdown .Content}}
+                </div>
+                <div class="reply-actions">
+                    {{if or (eq .CurrentRule 2) (eq .CurrentRule 3) (eq .AuthorID $.CurrentUser.ID)}}
+                    <button class="action-btn delete" style="font-size: 0.8rem; padding: 5px 10px;" onclick="deleteReply({{.ID}}, {{$.Topic.ID}})">🗑️ Удалить</button>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+
+            {{if eq (len .Replies) 0}}
+            <p style="text-align: center; color: var(--text-secondary);">Пока нет ответов. Будьте первым!</p>
+            {{end}}
+
+            <!-- Pagination -->
+            {{if gt .TotalPages 1}}
+            <div class="pagination">
+                {{if gt $.CurrentPage 1}}
+                <a href="/forum/topic/{{$.Topic.ID}}?page={{sub $.CurrentPage 1}}">⬅️ Назад</a>
+                {{end}}
+                
+                {{range $i, $p := seq 1 .TotalPages}}
+                    {{if eq $i $.CurrentPage}}
+                    <span class="active">{{$i}}</span>
+                    {{else}}
+                    <a href="/forum/topic/{{$.Topic.ID}}?page={{$i}}">{{$i}}</a>
+                    {{end}}
+                {{end}}
+                
+                {{if lt $.CurrentPage .TotalPages}}
+                <a href="/forum/topic/{{$.Topic.ID}}?page={{add $.CurrentPage 1}}">Вперед ➡️</a>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Add Reply Form -->
+        <div class="add-reply">
+            <h3>Добавить ответ</h3>
+            {{if not .CurrentUser.IsGuest}}
+            <form action="/forum/topic/reply" method="POST">
+                <input type="hidden" name="topic_id" value="{{.Topic.ID}}">
+                <textarea name="content" rows="4" placeholder="Ваш ответ... Поддерживается Markdown" required></textarea>
+                <button type="submit">Ответить</button>
+            </form>
+            {{else}}
+            <p style="color: var(--text-secondary);">Войдите, чтобы отвечать на темы</p>
+            {{end}}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bottom">
+            <span>> ACCESS GRANTED_</span>
+        </div>
+    </footer>
+
+    <script>
+        function deleteTopic(topicId) {
+            if (confirm('Вы уверены, что хотите удалить эту тему?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/forum/topic/delete';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'topic_id';
+                input.value = topicId;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function deleteReply(replyId, topicId) {
+            if (confirm('Вы уверены, что хотите удалить этот ответ?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/forum/reply/delete';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'reply_id';
+                input.value = replyId;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>

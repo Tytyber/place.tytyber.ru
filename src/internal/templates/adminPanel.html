@@ -57,14 +57,36 @@
             </div>
         </div>
 
-        <!-- Total Visits Card -->
+        <!-- Total Forum Topics Card -->
         <div class="metric-card">
             <div class="metric-header">
-                <h3>total visits</h3>
+                <h3>forum topics</h3>
             </div>
-            <div class="metric-value">{{.TotalVisits}}</div>
+            <div class="metric-value">{{.TotalForumTopics}}</div>
             <div class="metric-subtitle">
-                количество посещений
+                всего тем на форуме
+            </div>
+        </div>
+
+        <!-- Total Forum Views Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <h3>total views</h3>
+            </div>
+            <div class="metric-value">{{.TotalForumViews}}</div>
+            <div class="metric-subtitle">
+                общее количество просмотров
+            </div>
+        </div>
+
+        <!-- Daily Forum Topics Card -->
+        <div class="metric-card">
+            <div class="metric-header">
+                <h3>today's topics</h3>
+            </div>
+            <div class="metric-value">{{.DailyForumTopics}}</div>
+            <div class="metric-subtitle">
+                тем создано сегодня
             </div>
         </div>
 
@@ -100,6 +122,28 @@
                         </div>
                     </div>
                     <canvas id="healthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Forum Activity Card -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>forum activity</h3>
+                    <button class="icon-btn">•••</button>
+                </div>
+                <div class="chart-content">
+                    <div class="health-stats">
+                        <div class="health-label">total topics</div>
+                        <div class="health-value">{{.TotalForumTopics}}</div>
+                        <div class="health-change">
+                            <span class="trend up">↑ {{.DailyForumTopics}} topics today</span>
+                            <span>today's activity</span>
+                        </div>
+                        <div class="health-label">total views</div>
+                        <div class="health-value">{{.TotalForumViews}}</div>
+                        <div class="health-label">total replies</div>
+                        <div class="health-value">{{.TotalForumReplies}}</div>
+                    </div>
                 </div>
             </div>
 

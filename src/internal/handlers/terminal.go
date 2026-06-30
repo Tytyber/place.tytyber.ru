@@ -59,11 +59,6 @@ func HandleTerminal(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Clear session if logout
-	if response.Type == "success" && response.CurrentSessionUser == "guest" {
-		database.ClearSessionUserFromRequest(w, r)
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -126,6 +121,9 @@ func processCommand(cmd string, darkModeEnabled bool) models.TerminalResponse {
 				"  register     - регистрация нового пользователя",
 				"  login        - авторизация пользователя",
 				"  logout       - выход из системы",
+				"  profile      - перейти на страницу профиля",
+				"  admin-panel  - перейти в админ-панель",
+				"  forum        - перейти на форум",
 				"  clear        - очистить терминал",
 				"  help         - список команд",
 			},
@@ -140,6 +138,9 @@ func processCommand(cmd string, darkModeEnabled bool) models.TerminalResponse {
 				"  register     - регистрация нового пользователя",
 				"  login        - авторизация пользователя",
 				"  logout       - выход из системы",
+				"  profile      - перейти на страницу профиля",
+				"  admin-panel  - перейти в админ-панель",
+				"  forum        - перейти на форум",
 				"  clear        - очистить терминал",
 				"  help         - показать это сообщение",
 			},
@@ -166,6 +167,12 @@ func processCommand(cmd string, darkModeEnabled bool) models.TerminalResponse {
 
 	case "admin-panel":
 		return processAdminPanel()
+
+	case "profile":
+		return processProfile()
+
+	case "forum":
+		return processForum()
 
 	default:
 		return processCommandDefault(cmd)
@@ -461,6 +468,116 @@ func processAdminPanel() models.TerminalResponse {
 			"Проверка прав доступа...",
 			fmt.Sprintf("Уровень прав: %d - %s", user.Rule, ruleName),
 			"Админ-панель доступна по адресу: /admin",
+			"Ожидание перенаправления...",
+		},
+	}
+}
+
+func processProfile() models.TerminalResponse {
+	state := database.GetSessionState()
+
+	// Use user from session state if available
+	var user *models.User
+	if state.User != nil {
+		user = state.User
+	} else {
+		return models.TerminalResponse{
+			Output: "Ошибка: информация о пользователе недоступна. Пожалуйста, войдите в систему.",
+			Type:   "error",
+		}
+	}
+
+	// Определяем уровень прав
+	ruleName := "Обычный пользователь"
+	if user.Rule == 2 {
+		ruleName = "Модератор"
+	} else if user.Rule == 3 {
+		ruleName = "Администратор"
+	}
+
+	return models.TerminalResponse{
+		Output:             "Переход на страницу профиля...",
+		Type:               "success",
+		CurrentSessionUser: user.Username,
+		Redirect:           "/profile",
+		Additional: []string{
+			"Получение информации о пользователе...",
+			fmt.Sprintf("Имя: %s", user.Username),
+			fmt.Sprintf("Права: %d - %s", user.Rule, ruleName),
+			"Страница профиля доступна по адресу: /profile",
+			"Ожидание перенаправления...",
+		},
+	}
+}
+
+func processForum() models.TerminalResponse {
+	state := database.GetSessionState()
+
+	// Use user from session state if available
+	var user *models.User
+	if state.User != nil {
+		user = state.User
+	} else {
+		// Get user by username if available
+		if state.Username != "" {
+			var err error
+			user, err = database.GetUserByUsername(state.Username)
+			if err != nil {
+				// Fallback to guest if user not found
+				return models.TerminalResponse{
+					Output:             "Переход на форум...",
+					Type:               "success",
+					CurrentSessionUser: "guest",
+					Redirect:           "/forum",
+					Additional: []string{
+						"Форум доступен по адресу: /forum",
+						"Возможности:",
+						"  Просмотр тем в папках",
+						"  Поиск по заголовкам и пользователям",
+						"  Создание тем (только для зарегистрированных)",
+						"  Ответы на темы",
+						"  Управление папками (для прав >= 2)",
+						"Ожидание перенаправления...",
+					},
+				}
+			}
+		}
+	}
+
+	// If we have a valid user, use their information
+	if user != nil {
+		return models.TerminalResponse{
+			Output:             "Переход на форум...",
+			Type:               "success",
+			CurrentSessionUser: user.Username,
+			Redirect:           "/forum",
+			Additional: []string{
+				"Форум доступен по адресу: /forum",
+				"Возможности:",
+				"  Просмотр тем в папках",
+				"  Поиск по заголовкам и пользователям",
+				"  Создание тем (только для зарегистрированных)",
+				"  Ответы на темы",
+				"  Управление папками (для прав >= 2)",
+				"Ожидание перенаправления...",
+			},
+		}
+	}
+
+	// Fallback to guest if no user found
+	return models.TerminalResponse{
+		Output:             "Переход на форум...",
+		Type:               "success",
+		CurrentSessionUser: "guest",
+		Redirect:           "/forum",
+		Additional: []string{
+			"Форум доступен по адресу: /forum",
+			"Возможности:",
+			"  Просмотр тем в папках",
+			"  Поиск по заголовкам и пользователям",
+			"  Создание тем (только для зарегистрированных)",
+			"  Ответы на темы",
+			"  Управление папками (для прав >= 2)",
 			"Ожидание перенаправления...",
 		},
 	}
